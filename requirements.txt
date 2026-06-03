@@ -5,3 +5,8 @@ numpy>=1.24
 plotly>=5.20
 PyYAML>=6.0
 requests>=2.31
+
+# Optional — only needed for the AI research narrative on the Decision Helper
+# page. The app works fully without it (falls back to the built-in analysis).
+# Requires a recent SDK for adaptive thinking + output_config.
+anthropic>=0.69 ; python_version >= "3.8"

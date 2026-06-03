@@ -243,6 +243,50 @@ STRINGS: dict[str, dict[str, str]] = {
     "bt.maxdd": {"EN": "Max drawdown", "ID": "Max drawdown"},
     "bt.set_params": {"EN": "Set parameters and click **Run backtest**.",
                       "ID": "Atur parameter lalu klik **Jalankan backtest**."},
+
+    # Navigation
+    "nav.dashboard": {"EN": "Dashboard", "ID": "Dashboard"},
+    "nav.decision": {"EN": "Decision Helper", "ID": "Bantuan Keputusan"},
+
+    # Decision Helper page
+    "dh.title": {"EN": "🧭 Decision Helper — BUY stacking",
+                 "ID": "🧭 Bantuan Keputusan — BUY stacking"},
+    "dh.caption": {
+        "EN": "A per-day / per-month decision aid: ranked BUY picks with reasons, "
+              "a risk-reward table, sector-concentration warnings, and a verdict. "
+              "Decision-support only — not financial advice.",
+        "ID": "Bantuan keputusan harian / bulanan: pilihan BUY berperingkat dengan "
+              "alasan, tabel risk-reward, peringatan konsentrasi sektor, dan verdict. "
+              "Hanya alat bantu — bukan saran finansial."},
+    "dh.mode": {"EN": "Horizon", "ID": "Horizon"},
+    "dh.daily": {"EN": "Today (daily)", "ID": "Hari ini (harian)"},
+    "dh.monthly": {"EN": "This month (stacking)", "ID": "Bulan ini (stacking)"},
+    "dh.num": {"EN": "How many picks", "ID": "Jumlah pilihan"},
+    "dh.picks": {"EN": "Picks", "ID": "Pilihan"},
+    "dh.total_capital": {"EN": "Total capital", "ID": "Total modal"},
+    "dh.total_gain": {"EN": "Potential gain", "ID": "Potensi gain"},
+    "dh.total_loss": {"EN": "Potential loss", "ID": "Potensi loss"},
+    "dh.ranking": {"EN": "Priority ranking", "ID": "Ranking prioritas"},
+    "dh.rr_table": {"EN": "Risk / reward", "ID": "Risk / reward"},
+    "dh.sector_warn": {"EN": "⚠️ Sector concentration — pick one of: ",
+                       "ID": "⚠️ Konsentrasi sektor — pilih salah satu: "},
+    "dh.full_report": {"EN": "📄 Full written analysis",
+                       "ID": "📄 Analisa lengkap (teks)"},
+    "dh.gen_ai": {"EN": "✨ Write AI research narrative",
+                  "ID": "✨ Tulis narasi riset AI"},
+    "dh.ai_on": {"EN": "✨ AI-written narrative", "ID": "✨ Narasi ditulis AI"},
+    "dh.det_on": {"EN": "Built-in analysis", "ID": "Analisa bawaan"},
+    "dh.ai_spinner": {"EN": "Claude is writing the analysis…",
+                      "ID": "Claude sedang menulis analisa…"},
+    "dh.ai_unavail": {"EN": "AI narrative unavailable ({why}). Showing the built-in "
+                            "analysis instead.",
+                      "ID": "Narasi AI tidak tersedia ({why}). Menampilkan analisa "
+                            "bawaan."},
+    "dh.ai_failed": {"EN": "AI couldn't generate a narrative this time — showing the "
+                           "built-in analysis.",
+                     "ID": "AI gagal membuat narasi kali ini — menampilkan analisa "
+                           "bawaan."},
+    "dh.download": {"EN": "⬇️ Download as Markdown", "ID": "⬇️ Unduh sebagai Markdown"},
 }
 
 

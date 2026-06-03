@@ -45,6 +45,15 @@ strategy:
   portfolio_idr: 100000000    # assumed capital for position sizing (tune in UI)
   min_history_days: 60
 
+ai:
+  # Optional AI research narrative on the Decision Helper page (Anthropic Claude).
+  # Works only if `anthropic` is installed AND an API key is set via env
+  # ANTHROPIC_API_KEY or .streamlit/secrets.toml. Otherwise the page falls back
+  # to the built-in deterministic write-up. Set a cheaper model here if you like
+  # (e.g. "claude-sonnet-4-6"). Effort: low | medium | high.
+  model: "claude-opus-4-8"
+  effort: "low"
+
 live:
   # iTick realtime overlay (free tier). Get a key at https://itick.org
   # Set the key via env var ITICK_TOKEN or .streamlit/secrets.toml (preferred).
