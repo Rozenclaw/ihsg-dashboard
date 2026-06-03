@@ -1,0 +1,50 @@
+name: IHSG daily job
+
+# Runs after IDX close. IDX closes ~16:00 WIB = 09:00 UTC; we run 09:30 UTC.
+# Adjust the cron as you like (GitHub cron is UTC).
+on:
+  schedule:
+    - cron: "30 9 * * 1-5"   # Mon–Fri, 09:30 UTC
+  workflow_dispatch: {}        # allow manual run from the Actions tab
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      # Restore the SQLite DB between runs so history accumulates.
+      - name: Restore DB cache
+        uses: actions/cache@v4
+        with:
+          path: data/ihsg.db
+          key: ihsg-db-${{ github.run_id }}
+          restore-keys: ihsg-db-
+
+      - name: Run daily job
+        env:
+          ITICK_TOKEN: ${{ secrets.ITICK_TOKEN }}
+          ITICK_HOST: ${{ secrets.ITICK_HOST }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python scripts/daily_job.py
+
+      - name: Upload signals/log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ihsg-db
+          path: data/ihsg.db
+          if-no-files-found: ignore

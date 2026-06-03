@@ -1,0 +1,67 @@
+# IHSG Dashboard configuration (Phase 0-1)
+database:
+  path: "data/ihsg.db"
+
+data:
+  # Primary source adapter: "yfinance" (live) or "synthetic" (offline test)
+  source: "yfinance"
+  index_symbol: "^JKSE"      # IDX Composite (IHSG)
+  history_period: "2y"        # how much daily history to pull on refresh
+  history_interval: "1d"
+  request_pause_sec: 1.0       # politeness delay between batched calls
+
+indicators:
+  sma_fast: 50
+  sma_slow: 200
+  rsi_period: 14
+  bb_period: 20
+  bb_std: 2.0
+
+# Personal monthly stacking guide (DCA budget allocator)
+stacking:
+  monthly_budget_idr: 5000000   # your fixed monthly amount to stack
+  num_stocks: 3                 # split across the top N BUY picks
+  use_entry_price: true         # size at model entry (near support) vs last close
+
+paper:
+  starting_cash_idr: null     # null -> uses strategy.portfolio_idr
+  max_positions: 10
+  fee_bps: 15                 # simulated brokerage fee per side (0.15%)
+
+strategy:
+  weight_fundamental: 0.6     # composite = 0.6*fund + 0.4*tech
+  weight_technical: 0.4
+  min_yield_pct: 4.0          # dividend gate: must yield >= this to be buyable
+  good_yield_pct: 8.0         # yield that earns near-full fundamental marks
+  buy_threshold: 60.0         # composite >= this -> BUY (if gate passed)
+  sell_threshold: 40.0        # composite < this -> SELL bias
+  rsi_oversold: 40.0
+  rsi_overbought: 70.0
+  max_payout_pct: 100.0       # dividend payout above this flags yield-trap risk
+  target_pct: 20.0            # profit target above entry
+  stop_pct: 8.0               # stop-loss below entry
+  risk_per_trade_pct: 1.5     # % of portfolio risked per position
+  max_position_pct: 15.0      # max weight per name
+  portfolio_idr: 100000000    # assumed capital for position sizing (tune in UI)
+  min_history_days: 60
+
+live:
+  # iTick realtime overlay (free tier). Get a key at https://itick.org
+  # Set the key via env var ITICK_TOKEN or .streamlit/secrets.toml (preferred).
+  enabled: true
+  region: "ID"
+  poll_seconds: 60        # how often the live panel auto-refreshes
+  max_symbols: 15         # keep small to respect free-tier rate limits
+
+dashboard:
+  default_watchlist:
+    - BBRI.JK
+    - BMRI.JK
+    - BBNI.JK
+    - BBCA.JK
+    - TLKM.JK
+    - ASII.JK
+    - PTBA.JK
+    - ITMG.JK
+    - ADRO.JK
+    - UNTR.JK

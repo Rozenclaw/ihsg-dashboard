@@ -1,0 +1,19 @@
+# Premium dark base theme (liquid-glass tuned). The heavy styling is injected
+# as CSS by src/theme.py; this sets Streamlit's base palette + font.
+[theme]
+base = "dark"
+primaryColor = "#5eead4"
+backgroundColor = "#0a0e17"
+secondaryBackgroundColor = "#121826"
+textColor = "#e8edf4"
+font = "sans serif"
+
+[server]
+headless = true
+# Reload ALL modules (incl. src/*) on change, not just dashboard.py — avoids
+# stale-import bugs where new i18n keys show as raw "stack.title" text.
+runOnSave = true
+fileWatcherType = "auto"
+
+[browser]
+gatherUsageStats = false
