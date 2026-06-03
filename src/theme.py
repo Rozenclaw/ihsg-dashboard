@@ -1,11 +1,14 @@
-"""Premium dark 'liquid glass' theme for the Streamlit dashboard.
+"""Premium dark 'liquid glass' CSS for the Streamlit dashboard.
 
-Injects a single block of high-end CSS: glassmorphism cards, soft depth,
-animated gradient backdrop, refined typography (Inter), smooth transitions,
-and fixes for text truncation (no clipped labels/metrics). Pure CSS — no extra
-dependencies, works on the standard Streamlit runtime.
+HISTORICAL NOTE: this big CSS block (glassmorphism cards, animated backdrop,
+etc.) is injected via st.markdown/st.html, but Streamlit 1.50's HTML sanitizer
+(DOMPurify) drops large/complex injected <style> blocks, so it does NOT render
+on the current runtime. The dashboard's actual look — dark palette plus the
+MacBook-Air density tuning (baseFontSize, heading sizes, borders, radius) — is
+configured NATIVELY and reliably in .streamlit/config.toml instead.
 
-Call theme.inject(st) once, right after st.set_page_config().
+This module is kept as a reference / best-effort layer (inject() is no longer
+called from the app). The helpers below still work as plain HTML where used.
 """
 from __future__ import annotations
 
@@ -212,9 +215,49 @@ div[data-baseweb="toast"]{
 """
 
 
+# ---------------------------------------------------------------------------
+# Laptop-density layer (tuned for the MacBook Air M1 ≈ 1440×900 effective res).
+#
+# Goal: fit more on the ~790px usable height — tighter rhythm, compact-but-
+# readable metric cards, and single-word metric values like "Downtrend" that
+# never clip to "Downtre…". Applied unconditionally (the dashboard is laptop-
+# first; reads fine on larger screens too).
+#
+# WHY THE IFRAME TRICK (see inject): Streamlit 1.50's HTML sanitizer (DOMPurify)
+# drops <style> blocks injected via st.markdown / st.html non-deterministically
+# (the big premium CSS below never lands at all). A <style> created with the DOM
+# API inside a components.html iframe and appended to the PARENT document head
+# is not sanitized, so it lands reliably on every rerun.
+# ---------------------------------------------------------------------------
+DENSITY_RULES = """
+html, body{ font-size: 15px; }
+.block-container{ padding-top: 1.9rem; padding-bottom: 2rem; max-width: 1480px; }
+div[data-testid="stVerticalBlock"]{ gap: .7rem; }
+div[data-testid="stHorizontalBlock"]{ gap: .7rem; }
+hr{ margin: .55rem 0 !important; }
+div[data-testid="stMetric"]{ padding: 10px 13px; }
+div[data-testid="stMetricValue"], div[data-testid="stMetricValue"] > div{
+  font-size: 1.3rem !important; line-height: 1.14 !important;
+  white-space: nowrap !important; overflow: visible !important; text-overflow: clip !important;
+}
+div[data-testid="stMetricLabel"]{ font-size: .76rem !important; }
+div[data-testid="stMetricDelta"]{ font-size: .8rem !important; }
+h1{ font-size: 2.0rem; }
+h3{ font-size: 1.2rem; margin: .15rem 0 .35rem; }
+h4{ font-size: 1.02rem; margin: .1rem 0 .3rem; }
+.stButton > button, .stFormSubmitButton > button{ padding: .42rem .8rem; }
+div[data-testid="stExpander"] summary{ padding-top: .4rem; padding-bottom: .4rem; }
+div[data-testid="stDataFrame"]{ font-size: .85rem; }
+"""
+
+
 def inject(st) -> None:
-    """Inject the premium theme. Call once after set_page_config()."""
-    st.markdown(CSS, unsafe_allow_html=True)
+    """Inject the laptop-density stylesheet. Call once after set_page_config()."""
+    css = f"<style>{DENSITY_RULES}</style>"
+    if hasattr(st, "html"):
+        st.html(css)
+    else:
+        st.markdown(css, unsafe_allow_html=True)
 
 
 def glass_card(st, title: str, body_md: str, accent: str = "#5eead4") -> None:

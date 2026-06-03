@@ -6,3 +6,6 @@ data/*.db-wal
 data/universe.csv
 .venv/
 .streamlit/secrets.toml
+
+# Claude Code machine-local settings
+.claude/settings.local.json

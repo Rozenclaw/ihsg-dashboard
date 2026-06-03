@@ -1,12 +1,25 @@
-# Premium dark base theme (liquid-glass tuned). The heavy styling is injected
-# as CSS by src/theme.py; this sets Streamlit's base palette + font.
+# Dark theme tuned for a MacBook Air M1 (≈1440×900). Streamlit 1.50's sanitizer
+# drops large injected <style> blocks, so density/aesthetics are set NATIVELY
+# here (reliable) rather than via CSS. baseFontSize is the main density lever:
+# 14px shrinks everything ~12%, fitting more on the ~790px height and sizing the
+# metric value down so single-word values like "Downtrend" no longer clip.
 [theme]
 base = "dark"
 primaryColor = "#5eead4"
 backgroundColor = "#0a0e17"
 secondaryBackgroundColor = "#121826"
 textColor = "#e8edf4"
-font = "sans serif"
+font = "sans-serif"
+baseFontSize = 14
+baseRadius = "0.85rem"
+borderColor = "#1e2a3f"
+showWidgetBorder = true
+showSidebarBorder = true
+dataframeBorderColor = "#1e2a3f"
+# Denser h1–h4 so section titles (###, ####) don't eat vertical space.
+headingFontSizes = ["2.0rem", "1.6rem", "1.3rem", "1.05rem"]
+# Chart palette matching the teal/indigo accent.
+chartCategoricalColors = ["#5eead4", "#818cf8", "#f472b6", "#fbbf24", "#34d399"]
 
 [server]
 headless = true
