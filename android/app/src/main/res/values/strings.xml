@@ -5,5 +5,5 @@
          Paste your app's public URL, e.g. https://ihsg-dashboard.streamlit.app
          This is the ONLY thing you change in the Android project; rebuild the
          APK once after editing. -->
-    <string name="dashboard_url">https://YOUR-APP-NAME.streamlit.app</string>
+    <string name="dashboard_url">https://ihsg-dashboard-fgpwhho6phsnjmbr59hlpc.streamlit.app</string>
 </resources>
