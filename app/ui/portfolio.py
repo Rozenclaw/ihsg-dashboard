@@ -11,6 +11,8 @@ from ui.common import (CFG, T, _style_fig, backtest, clean_ticker, db, fmt, go,
 def paper_portfolio_section():
     st.markdown(f"#### {T('paper.title')}")
     st.caption(T("paper.caption"))
+    with st.popover(T("help.use")):
+        st.markdown(T("paper.help"))
     snap = paper.portfolio_snapshot(CFG)
     c1, c2, c3, c4 = st.columns(4)
     c1.metric(T("paper.equity"), fmt(snap["equity"], 0),
@@ -84,6 +86,8 @@ def _run_backtest(lookback: int, rebalance: int, maxpos: int) -> dict:
 def backtest_section():
     st.markdown(f"#### {T('bt.title')}")
     st.caption(T("bt.caption"))
+    with st.popover(T("help.use")):
+        st.markdown(T("bt.help"))
     c1, c2, c3, c4 = st.columns(4)
     lookback = c1.selectbox(T("bt.lookback"), [126, 252, 504, 756], index=2)
     rebalance = c2.selectbox(T("bt.rebalance"), [1, 5, 10, 20], index=1)
@@ -120,6 +124,8 @@ def backtest_section():
 
 def portfolio_section(all_syms: list[str]):
     st.caption(T("port.caption"))
+    with st.popover(T("help.use")):
+        st.markdown(T("port.help"))
     with st.popover("➕ Import / paste holdings (CSV)"):
         sample = "symbol,lots,avg_price,note\nBBRI,10,4100,core\nPTBA,5,2800,dividend"
         text = st.text_area("CSV", value="", placeholder=sample, height=120,

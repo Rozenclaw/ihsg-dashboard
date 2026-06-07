@@ -126,8 +126,29 @@ def stacking_section():
     st.caption(T("rec.disclaimer"))
 
 
+def _add_buy_uptrend(buy_up: list[str]):
+    """Merge today's BUY+uptrend picks into the watchlist.
+
+    Runs as the button's ``on_click`` **callback** — i.e. BEFORE any widget is
+    instantiated on the rerun — so assigning ``st.session_state['watchlist']``
+    (a key owned by the watchlist multiselect in dashboard.py) is allowed here.
+    Doing the same assignment inline in the button's ``if`` branch raises
+    ``StreamlitAPIException``, because by then the multiselect has already claimed
+    the key earlier in the same script run. The toast is stashed and drained on
+    the rerun (callbacks run before the page is laid out)."""
+    current = set(st.session_state.get("watchlist", []))
+    added = [s for s in buy_up if s not in current]
+    current.update(buy_up)
+    st.session_state["watchlist"] = sorted(current)
+    st.session_state["_wl_toast"] = (
+        T("rec.added_toast", n=len(added)) if added else T("rec.already_toast"))
+
+
 def recommendations_section():
     st.caption(T("rec.caption"))
+    _toast = st.session_state.pop("_wl_toast", None)
+    if _toast:
+        st.toast(_toast)
     df = get_recommendations()
     if df.empty:
         st.warning(T("rec.no_data"))
@@ -143,15 +164,9 @@ def recommendations_section():
                 (df["trend"].isin(["Uptrend", "Above SMA"]))]["symbol"].tolist()
     b1, b2 = st.columns([2, 3])
     with b1:
-        if st.button(T("rec.add_buy_uptrend", n=len(buy_up)),
-                     disabled=not buy_up, width="stretch"):
-            current = set(st.session_state.get("watchlist", []))
-            added = [s for s in buy_up if s not in current]
-            current.update(buy_up)
-            st.session_state["watchlist"] = sorted(current)
-            st.toast(T("rec.added_toast", n=len(added)) if added
-                     else T("rec.already_toast"))
-            st.rerun()
+        st.button(T("rec.add_buy_uptrend", n=len(buy_up)),
+                  disabled=not buy_up, width="stretch",
+                  on_click=_add_buy_uptrend, args=(buy_up,))
     with b2:
         if buy_up:
             st.caption("BUY + uptrend: "

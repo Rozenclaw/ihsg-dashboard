@@ -13,6 +13,9 @@ def price_chart(symbol: str):
         st.info(f"No data for {symbol}.")
         return
     snap = indicators.snapshot(df, CFG)
+    if not snap:            # non-empty frame but all-NaN close -> nothing to chart
+        st.info(f"No data for {symbol}.")
+        return
     st.info(nojk(explain.explain_stock(snap, CFG, symbol, LANG())))
 
     # --- Time-range toggle ---
@@ -76,6 +79,8 @@ def watchlist_table(symbols: list[str]):
         if df.empty:
             continue
         s = indicators.snapshot(df, CFG)
+        if not s:            # all-NaN close -> snapshot() returns {}; skip symbol
+            continue
         fund = db.load_fundamentals(sym)
         price = s["close"]
         div = fund.get("last_dividend")

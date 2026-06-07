@@ -171,6 +171,33 @@ STRINGS: dict[str, dict[str, str]] = {
               "Stays on your machine.",
         "ID": "Lacak posisi ASLI Anda. Tempel CSV: symbol, lots, avg_price[, note]. "
               "Tersimpan lokal di perangkat Anda."},
+    "help.use": {"EN": "ℹ️ How to use / fill this",
+                 "ID": "ℹ️ Cara pakai / cara mengisi"},
+    "port.help": {
+        "EN": "**What this is:** a private tracker for the shares you *actually* own — "
+              "it compares your cost to the live price and flags any holding the "
+              "strategy now rates SELL. Everything stays on your device.\n\n"
+              "**How to fill it:** open **➕ Import / paste holdings (CSV)** and paste "
+              "one stock per line in this format:\n\n`symbol, lots, avg_price, note`\n\n"
+              "- **symbol** — IDX code, e.g. `BBRI` (no `.JK` needed)\n"
+              "- **lots** — lots you hold (1 lot = 100 shares), e.g. `10`\n"
+              "- **avg_price** — your average buy price per share in Rupiah, e.g. `4100`\n"
+              "- **note** — *optional* free text, e.g. `core`\n\n"
+              "**Example — paste exactly this shape:**\n\n```\nsymbol,lots,avg_price,note\n"
+              "BBRI,10,4100,core\nPTBA,5,2800,dividend\n```\n\n"
+              "Then press **Import holdings**. **Clear holdings** wipes everything.",
+        "ID": "**Apa ini:** pelacak pribadi untuk saham yang *benar-benar* Anda miliki — "
+              "membandingkan modal Anda dengan harga live dan menandai holding yang kini "
+              "dinilai SELL oleh strategi. Semua tersimpan di perangkat Anda.\n\n"
+              "**Cara mengisi:** buka **➕ Import / paste holdings (CSV)** lalu tempel "
+              "satu saham per baris dengan format:\n\n`symbol, lots, avg_price, note`\n\n"
+              "- **symbol** — kode IDX, mis. `BBRI` (tanpa `.JK`)\n"
+              "- **lots** — jumlah lot yang dipegang (1 lot = 100 lembar), mis. `10`\n"
+              "- **avg_price** — harga beli rata-rata per lembar (Rupiah), mis. `4100`\n"
+              "- **note** — *opsional* teks bebas, mis. `core`\n\n"
+              "**Contoh — tempel persis bentuk ini:**\n\n```\nsymbol,lots,avg_price,note\n"
+              "BBRI,10,4100,core\nPTBA,5,2800,dividend\n```\n\n"
+              "Lalu tekan **Import holdings**. **Hapus holdings** mengosongkan semua."},
     "port.import": {"EN": "Import holdings", "ID": "Import holdings"},
     "port.clear": {"EN": "Clear holdings", "ID": "Hapus holdings"},
     "port.none": {"EN": "No holdings yet. Paste your positions above.",
@@ -231,6 +258,35 @@ STRINGS: dict[str, dict[str, str]] = {
               "today's BUY signals.",
         "ID": "Belum ada posisi paper. Klik 'Jalankan paper trade' untuk "
               "mengeksekusi sinyal BUY hari ini."},
+    "paper.help": {
+        "EN": "**What this is:** a risk-free simulation that trades the strategy's "
+              "daily BUY/SELL signals with *virtual* money — no real cash involved. "
+              "Use it to see how the strategy would have done before risking anything.\n\n"
+              "**How to use it (no typing needed):**\n"
+              "- Press **▶️ Advance paper trade 1 day** to apply today's signals "
+              "(buys today's BUY picks, sells anything flagged SELL) — one simulated "
+              "day per click. Repeat day by day to build a track record; the equity "
+              "curve below grows as you go.\n"
+              "- Press **♻️ Reset paper portfolio** to wipe it and start fresh.\n\n"
+              "**What the four numbers mean:**\n"
+              "- **Equity** — total value of the sim (cash + shares)\n"
+              "- **Cash** — virtual money not yet invested\n"
+              "- **Holdings** — market value of the shares held now\n"
+              "- **Positions** — how many different stocks are held",
+        "ID": "**Apa ini:** simulasi tanpa risiko yang menjalankan sinyal BUY/SELL "
+              "harian dari strategi memakai uang *virtual* — tanpa uang sungguhan. "
+              "Pakai untuk melihat perkiraan kinerja strategi sebelum pakai uang asli.\n\n"
+              "**Cara pakai (tidak perlu mengetik):**\n"
+              "- Tekan **▶️ Jalankan paper trade 1 hari** untuk menerapkan sinyal hari "
+              "ini (membeli pilihan BUY, menjual yang bersinyal SELL) — satu hari "
+              "simulasi per klik. Ulangi hari demi hari untuk membangun rekam jejak; "
+              "kurva ekuitas di bawah akan bertumbuh.\n"
+              "- Tekan **♻️ Reset portfolio simulasi** untuk menghapus dan mulai ulang.\n\n"
+              "**Arti empat angkanya:**\n"
+              "- **Total ekuitas** — nilai total simulasi (kas + saham)\n"
+              "- **Kas** — uang virtual yang belum diinvestasikan\n"
+              "- **Nilai saham** — nilai pasar saham yang dipegang sekarang\n"
+              "- **Posisi** — berapa saham berbeda yang dipegang"},
 
     # Backtest
     "bt.title": {"EN": "🧪 Backtest", "ID": "🧪 Backtest"},
@@ -245,6 +301,48 @@ STRINGS: dict[str, dict[str, str]] = {
     "bt.maxdd": {"EN": "Max drawdown", "ID": "Max drawdown"},
     "bt.set_params": {"EN": "Set parameters and click **Run backtest**.",
                       "ID": "Atur parameter lalu klik **Jalankan backtest**."},
+    "bt.help": {
+        "EN": "**What this is:** a \"what-if\" replay that runs the strategy over past "
+              "data and compares it to simply buying & holding the IHSG index. "
+              "*Indicative only* — past results don't guarantee the future.\n\n"
+              "**How to fill the three settings:**\n"
+              "- **Lookback (days)** — how far back to test, in *trading* days: "
+              "~252 = 1 year, **504 = 2 years**, 756 = 3 years. Longer = more history, "
+              "but slower.\n"
+              "- **Rebalance every (days)** — how often it re-picks stocks: `5` = "
+              "weekly, `20` ≈ monthly. Smaller = reacts faster but trades more.\n"
+              "- **Max positions** — how many stocks to hold at once, e.g. `10`. "
+              "Fewer = more concentrated.\n\n"
+              "Then press **Run backtest**.\n\n"
+              "**What the results mean:**\n"
+              "- **Total return** — overall % gain/loss for the whole period\n"
+              "- **CAGR** — that return averaged to a per-year rate\n"
+              "- **Max drawdown** — the worst peak-to-trough drop (smaller is safer)\n"
+              "- **Sharpe** — return per unit of risk (higher is better; above 1 is good)\n\n"
+              "The line below shows whether the strategy **beat or lagged** IHSG "
+              "buy-and-hold.",
+        "ID": "**Apa ini:** simulasi \"bagaimana jika\" yang menjalankan strategi pada "
+              "data masa lalu lalu membandingkannya dengan sekadar beli-dan-tahan "
+              "indeks IHSG. *Hanya indikatif* — hasil masa lalu bukan jaminan ke depan.\n\n"
+              "**Cara mengisi tiga pengaturan:**\n"
+              "- **Periode (hari)** — seberapa jauh ke belakang diuji, dalam hari "
+              "*bursa*: ~252 = 1 tahun, **504 = 2 tahun**, 756 = 3 tahun. Makin panjang "
+              "= makin banyak riwayat, tapi lebih lambat.\n"
+              "- **Rebalance tiap (hari)** — seberapa sering memilih ulang saham: `5` = "
+              "mingguan, `20` ≈ bulanan. Makin kecil = makin cepat bereaksi tapi lebih "
+              "sering trading.\n"
+              "- **Maks posisi** — berapa saham dipegang sekaligus, mis. `10`. Makin "
+              "sedikit = makin terkonsentrasi.\n\n"
+              "Lalu tekan **Jalankan backtest**.\n\n"
+              "**Arti hasilnya:**\n"
+              "- **Total return** — total % untung/rugi sepanjang periode\n"
+              "- **CAGR** — return itu dirata-ratakan menjadi laju per tahun\n"
+              "- **Max drawdown** — penurunan terburuk puncak-ke-lembah (makin kecil "
+              "makin aman)\n"
+              "- **Sharpe** — return per satuan risiko (makin tinggi makin baik; di atas "
+              "1 bagus)\n\n"
+              "Baris di bawah menunjukkan apakah strategi **mengungguli atau kalah** "
+              "dari buy-and-hold IHSG."},
 
     # Navigation
     "nav.dashboard": {"EN": "Dashboard", "ID": "Dashboard"},
