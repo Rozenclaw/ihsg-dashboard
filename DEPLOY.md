@@ -110,11 +110,19 @@ freshen the offline seed snapshot.)
 
 ## Notes & limits (Community Cloud free tier)
 
-- **Resources:** ~1 GB RAM. Fine for one user; if it ever gets sluggish, trim the
-  universe (`src/universe.py`) or `data.history_period` in `config.yaml`.
-- **Data freshness:** the app refreshes on boot when stale (UTC day rollover).
-  Use the sidebar **🔄 Refresh** button to force it. If Yahoo rate-limits the
-  shared cloud IP, you still see the committed seed snapshot.
+- **Full IDX universe (~950 stocks):** the complete ticker list is in
+  `data/universe.csv` (built by `scripts/fetch_idx_universe.py` from a free
+  source; re-run it to pick up new IPOs). The committed `data/seed.db.gz` (28 MB)
+  is the bundled market snapshot the cloud/local unpacks on first boot.
+- **Resources:** ~1 GB RAM. Charting/watchlist/alerts cover every stock, but the
+  universe-wide **screening** (recommendations, Daily Trading board) is capped to
+  the most-liquid `strategy.screen_max_names` (300) for speed — raise/lower it in
+  `config.yaml`, or set 0 to screen all.
+- **Data freshness (the rule):** prices refresh **once per trading day, after the
+  IDX close (~17:00 WIB), and never on weekends/holidays** (see
+  `src/market_calendar.py`). Fundamentals come from the snapshot (refresh anytime
+  with `python scripts/refresh_data.py`). If Yahoo rate-limits the cloud IP you
+  still see the seed snapshot. Add lunar-holiday dates to `MOVABLE_HOLIDAYS`.
 - **Sleep:** the app may sleep after long inactivity and cold-start on next open
   (a few seconds; if it had to rebuild data, a bit longer).
 - **Privacy:** keep the GitHub repo **private** and always set `APP_PASSWORD`.

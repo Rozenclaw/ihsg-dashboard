@@ -62,29 +62,36 @@ if [ ! -f "$DEPS_STAMP" ] || [ "$(cat "$DEPS_STAMP" 2>/dev/null)" != "$REQ_HASH"
   python -m pip install --quiet -r requirements.txt && echo "$REQ_HASH" > "$DEPS_STAMP"
 fi
 
-# 4) Refresh market data — but only once per day, so repeat launches are fast.
-#    Force with --refresh, skip entirely with --no-refresh.
+# 4) First run: unpack the bundled full-IDX snapshot so the dashboard shows all
+#    ~950 stocks instantly (no long first-time fetch). data/seed.db.gz is committed.
+DB="data/ihsg.db"
+if [ ! -f "$DB" ] && [ -f "data/seed.db.gz" ]; then
+  echo "[data] First run: unpacking bundled IDX market snapshot (full universe)..."
+  gunzip -c data/seed.db.gz > "$DB" 2>/dev/null && echo "[ok] Snapshot ready." \
+    || echo "[warn] Could not unpack snapshot; will fetch fresh instead."
+fi
+
+# 5) Refresh market data — PRICES-ONLY across the full universe (fast, batched).
+#    The "--if-due" rule (src/market_calendar.py) makes this update at most ONCE
+#    per trading day, only AFTER the IDX close, and NEVER on weekends/holidays — so
+#    repeat launches and off-days are instant. The slower fundamentals come from the
+#    bundled snapshot; refresh them anytime with:
+#        python3 scripts/refresh_data.py            (full, incl. fundamentals)
+#    Force a refresh now with --refresh; skip entirely with --no-refresh.
 ARG="${1:-}"
-TODAY="$(date +%Y-%m-%d)"
-STAMP=".venv/.last_refresh"
-need_refresh=1
-[ "$ARG" = "--no-refresh" ] && need_refresh=0
-if [ "$ARG" != "--refresh" ] && [ -f "$STAMP" ] && [ "$(cat "$STAMP" 2>/dev/null)" = "$TODAY" ]; then
-  need_refresh=0
-fi
-
-if [ "$need_refresh" = "1" ]; then
-  echo "[data] Pulling latest IHSG prices from Yahoo Finance..."
-  if python3 scripts/refresh_data.py; then
-    echo "$TODAY" > "$STAMP"
-  else
-    echo "[warn] Data refresh hit an issue; opening with existing data."
-  fi
+if [ "$ARG" = "--no-refresh" ]; then
+  echo "[data] Skipping refresh (--no-refresh)."
+elif [ "$ARG" = "--refresh" ]; then
+  echo "[data] Forcing a price refresh (full universe)..."
+  python3 scripts/refresh_data.py --prices-only \
+    || echo "[warn] Data refresh hit an issue; opening with existing data."
 else
-  echo "[data] Skipping refresh (already done today, or --no-refresh)."
+  echo "[data] Checking for the latest IDX session (updates once/day, after close)..."
+  python3 scripts/refresh_data.py --prices-only --if-due \
+    || echo "[warn] Data refresh hit an issue; opening with existing data."
 fi
 
-# 5) Launch the dashboard (opens your browser).
+# 6) Launch the dashboard (opens your browser).
 echo
 echo "[launch] Opening dashboard at http://localhost:$PORT"
 echo "         To stop it: come back here and press  Ctrl + C"

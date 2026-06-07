@@ -1,11 +1,12 @@
 __pycache__/
 *.pyc
 data/*.db
-!data/seed.db
 data/*.db.bak-*
 data/*.db-shm
 data/*.db-wal
-data/universe.csv
+# Committed for cloud deploy: the full IDX ticker list + the gzipped seed snapshot
+# (uncompressed data/seed.db stays ignored above via data/*.db).
+!data/universe.csv
 .venv/
 .streamlit/secrets.toml
 .streamlit/*.log

@@ -189,6 +189,49 @@ def upsert_security(symbol: str, name: str = "", sector: str = "",
         )
 
 
+def update_security_meta(symbol: str, name: str | None = None,
+                         sector: str | None = None) -> None:
+    """Update only the provided fields on an existing security (so a blank value
+    from one source never wipes a good curated name/sector)."""
+    sets, params = [], []
+    if name:
+        sets.append("name=?"); params.append(name)
+    if sector:
+        sets.append("sector=?"); params.append(sector)
+    if not sets:
+        return
+    params.append(symbol)
+    with connect() as conn:
+        conn.execute(f"UPDATE securities SET {', '.join(sets)} WHERE symbol=?", params)
+
+
+def top_liquid_symbols(n: int, days: int = 45) -> list[str]:
+    """The `n` most-liquid non-index symbols by recent average daily turnover
+    (close × volume) over the last `days` days — one aggregate query. Used to cap
+    the SCREENING universe so recommendations stay fast on a large stored set;
+    browsing/charting still covers every symbol."""
+    import datetime as _dt
+    cutoff = (_dt.date.today() - _dt.timedelta(days=days)).isoformat()
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT p.symbol AS symbol, AVG(p.close*p.volume) AS turnover "
+            "FROM prices p JOIN securities s ON s.symbol=p.symbol "
+            "WHERE s.is_index=0 AND s.active=1 AND p.date>=? AND p.volume>0 "
+            "GROUP BY p.symbol ORDER BY turnover DESC LIMIT ?",
+            (cutoff, int(n))).fetchall()
+    return [r["symbol"] for r in rows]
+
+
+def prune_securities_without_prices() -> int:
+    """Drop non-index securities that have no price rows (delisted / no Yahoo
+    data), so the dashboard's stock list only shows tickers that actually load."""
+    with connect() as conn:
+        cur = conn.execute(
+            "DELETE FROM securities WHERE is_index=0 AND symbol NOT IN "
+            "(SELECT DISTINCT symbol FROM prices)")
+        return cur.rowcount
+
+
 def save_prices(symbol: str, df: pd.DataFrame) -> int:
     """df indexed by date with columns open/high/low/close/volume."""
     if df is None or df.empty:
@@ -435,6 +478,14 @@ def load_security_names() -> dict:
     with connect() as conn:
         return {r["symbol"]: r["name"]
                 for r in conn.execute("SELECT symbol, name FROM securities").fetchall()}
+
+
+def latest_price_date(symbol: str) -> str | None:
+    """Most recent stored price date (ISO) for a symbol, or None."""
+    with connect() as conn:
+        row = conn.execute("SELECT MAX(date) AS d FROM prices WHERE symbol=?",
+                           (symbol,)).fetchone()
+    return row["d"] if row and row["d"] else None
 
 
 def last_refresh() -> dict | None:

@@ -45,6 +45,11 @@ strategy:
   max_position_pct: 15.0      # max weight per name
   portfolio_idr: 100000000    # assumed capital for position sizing (tune in UI)
   min_history_days: 60
+  # With the FULL IDX universe (~950 names) stored, screening every name on each
+  # rerun is heavy on modest hardware (e.g. the free cloud tier). Cap the SCREENING
+  # set to the N most-liquid names (+ the curated seed); charts/watchlist/alerts
+  # still cover every stored stock. Set 0 to screen the whole universe.
+  screen_max_names: 300
 
 ai:
   # Optional AI research narrative on the Decision Helper page. Uses any

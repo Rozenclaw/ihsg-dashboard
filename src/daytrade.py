@@ -273,7 +273,9 @@ def build_board(cfg: dict, *, lang: str = "EN", top_n: int | None = None,
     p = _params(cfg)
     n = int(top_n or p["top_n"])
     as_of = as_of or pd.Timestamp.today().strftime("%Y-%m-%d")
-    syms = symbols if symbols is not None else db.list_symbols(include_index=False)
+    # Screen the liquidity-capped set (not all ~950 stored names) so the board
+    # builds fast; the daily turnover gate below still applies on top.
+    syms = symbols if symbols is not None else strategy.screening_symbols(cfg)
 
     scored = []
     for s in syms:

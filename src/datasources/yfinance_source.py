@@ -35,6 +35,43 @@ class YFinanceSource(DataSource):
         df.index = pd.to_datetime(df.index)
         return df
 
+    def history_batch(self, symbols, period: str = "2y",
+                      interval: str = "1d") -> dict:
+        """Bulk fetch many tickers in ONE batched request -> {symbol: DataFrame}.
+        Far faster than per-symbol for a large universe (~958 IDX names)."""
+        import yfinance as yf
+        symbols = list(symbols)
+        out: dict = {}
+        if not symbols:
+            return out
+        df = yf.download(symbols, period=period, interval=interval,
+                         progress=False, auto_adjust=True, group_by="ticker",
+                         threads=True)
+        if df is None or df.empty:
+            return {s: pd.DataFrame() for s in symbols}
+        ren = {"Open": "open", "High": "high", "Low": "low",
+               "Close": "close", "volume": "volume", "Volume": "volume"}
+        multi = isinstance(df.columns, pd.MultiIndex)
+        lvl0 = set(df.columns.get_level_values(0)) if multi else set()
+        for s in symbols:
+            try:
+                if multi:
+                    if s not in lvl0:
+                        out[s] = pd.DataFrame()
+                        continue
+                    sub = df[s].copy()
+                else:
+                    sub = df.copy()       # single-symbol fallback shape
+                sub = sub.rename(columns=ren)
+                keep = [c for c in ["open", "high", "low", "close", "volume"]
+                        if c in sub.columns]
+                sub = sub[keep].dropna(how="all")
+                sub.index = pd.to_datetime(sub.index)
+                out[s] = sub
+            except Exception:
+                out[s] = pd.DataFrame()
+        return out
+
     def fundamentals(self, symbol: str) -> dict:
         import yfinance as yf
         try:
@@ -85,6 +122,7 @@ class YFinanceSource(DataSource):
                     div_yield = round(div_yield / 100, 2)
 
         return {
+            "name": info.get("longName") or info.get("shortName"),
             "price": price,
             "market_cap": info.get("marketCap"),
             "beta": info.get("beta"),

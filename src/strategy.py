@@ -379,9 +379,26 @@ def _apply_sector_ranks(recs: list[Recommendation]) -> None:
             r.sector_rank_pct = round(i / (n - 1) * 100, 0)
 
 
+def screening_symbols(cfg: dict) -> list[str]:
+    """The universe to SCREEN (recommendations / daily board). For a large stored
+    universe we cap to the most-liquid N names (plus the curated seed list) so
+    screening stays fast on modest hardware. Browsing/charting/watchlist/alerts
+    still cover EVERY stored symbol — only the universe-wide scan is bounded.
+    Set strategy.screen_max_names to 0 to screen the whole universe."""
+    all_syms = db.list_symbols(include_index=False)
+    cap = int((cfg.get("strategy") or {}).get("screen_max_names", 0) or 0)
+    if not cap or len(all_syms) <= cap:
+        return all_syms
+    liquid = set(db.top_liquid_symbols(cap))
+    from .universe import seed_universe
+    curated = {s for s, _, _ in seed_universe()}
+    keep = liquid | (curated & set(all_syms))
+    return [s for s in all_syms if s in keep]
+
+
 def evaluate_universe(cfg: dict, symbols: list[str] | None = None) -> list[Recommendation]:
     if symbols is None:
-        symbols = db.list_symbols(include_index=False)
+        symbols = screening_symbols(cfg)
     recs = [evaluate(s, cfg) for s in symbols]
     _apply_sector_ranks(recs)
     # Rank: BUY first by composite desc, then HOLD, then SELL, SKIP last.
