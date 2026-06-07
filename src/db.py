@@ -198,7 +198,19 @@ def save_prices(symbol: str, df: pd.DataFrame) -> int:
         d = dt.strftime("%Y-%m-%d") if hasattr(dt, "strftime") else str(dt)[:10]
         rows.append((symbol, d, _f(r.get("open")), _f(r.get("high")),
                      _f(r.get("low")), _f(r.get("close")), _f(r.get("volume"))))
+    dates = [r[1] for r in rows]
+    dmin, dmax = min(dates), max(dates)
     with connect() as conn:
+        # Replace the whole fetched window for this symbol: delete every existing
+        # row inside [dmin, dmax] first, then insert exactly what the source
+        # returned. A plain upsert (ON CONFLICT) only OVERWRITES matching dates,
+        # so stale rows the source no longer reports — e.g. bars left over from
+        # the synthetic seed on IDX market holidays (Christmas, Lebaran, CNY),
+        # which yfinance never returns — would linger forever and spike the chart.
+        # Deleting the window first removes them; history OUTSIDE the window is
+        # untouched. (yfinance returns only real trading days, so this is safe.)
+        conn.execute("DELETE FROM prices WHERE symbol=? AND date BETWEEN ? AND ?",
+                     (symbol, dmin, dmax))
         conn.executemany(
             """INSERT INTO prices(symbol,date,open,high,low,close,volume)
                VALUES(?,?,?,?,?,?,?)

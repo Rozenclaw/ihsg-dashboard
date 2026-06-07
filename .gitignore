@@ -1,11 +1,13 @@
 __pycache__/
 *.pyc
 data/*.db
+data/*.db.bak-*
 data/*.db-shm
 data/*.db-wal
 data/universe.csv
 .venv/
 .streamlit/secrets.toml
+.streamlit/*.log
 
 # Claude Code machine-local settings
 .claude/settings.local.json
