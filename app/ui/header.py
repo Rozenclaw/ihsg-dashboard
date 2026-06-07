@@ -4,8 +4,8 @@ from __future__ import annotations
 import pandas as pd
 
 from ui.common import (CFG, LANG, RANGES, T, _period_metrics, _slice_range,
-                       _style_fig, db, explain, fmt, get_enriched, get_live_quotes,
-                       go, indicators, live, st)
+                       _style_fig, clean_ticker, db, explain, fmt, get_enriched,
+                       get_live_quotes, go, indicators, live, logo_col, st)
 
 
 def _ihsg_hero_chart(df: pd.DataFrame, rng: str):
@@ -118,23 +118,26 @@ def _live_panel_body(symbols: list[str]):
         st.caption("—")
         return
     quotes = get_live_quotes(tuple(syms))
-    rows, errors = [], []
+    rows, errors, ok_syms = [], [], []
     for sym in syms:
         q = quotes.get(sym, {})
         if q.get("ok"):
             last, op = q.get("last"), q.get("open")
             chg = ((last - op) / op * 100) if (last and op) else None
-            rows.append({"Symbol": sym, "Last": last, "Open": op,
+            rows.append({"Symbol": clean_ticker(sym), "Last": last, "Open": op,
                          "High": q.get("high"), "Low": q.get("low"),
                          "Chg % (vs open)": chg, "Volume": q.get("volume")})
+            ok_syms.append(sym)
         else:
-            errors.append(f"{sym}: {q.get('error') or 'no data'}")
+            errors.append(f"{clean_ticker(sym)}: {q.get('error') or 'no data'}")
     if rows:
         dfq = pd.DataFrame(rows)
+        dfq.insert(0, "", logo_col(ok_syms))
         st.dataframe(dfq.style.format({
             "Last": "{:,.0f}", "Open": "{:,.0f}", "High": "{:,.0f}", "Low": "{:,.0f}",
             "Chg % (vs open)": "{:+.2f}", "Volume": "{:,.0f}",
-        }, na_rep="—"), width="stretch", hide_index=True)
+        }, na_rep="—"), width="stretch", hide_index=True,
+            column_config={"": st.column_config.ImageColumn("")})
         st.caption(f"{live.provider_label(CFG)} · {T('live.updated')} "
                    f"{pd.Timestamp.now().strftime('%H:%M:%S')} · "
                    f"IDX ~09:00–16:00 WIB")

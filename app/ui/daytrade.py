@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import os
 
-from ui.common import CFG, LANG, T, fmt, pd, st, theme
+from ui.common import (CFG, LANG, T, clean_ticker, fmt, logo_col, pd, st,
+                       theme)
 from src import daytrade, airesearch  # noqa: E402  (path set up by ui.common)
 
 
@@ -65,25 +66,30 @@ def render():
     # --- the ranked shortlist (open) ---
     with st.expander("📋  " + T("dt.board_title", n=top_n), expanded=True):
         rows = board["rows"]
+        _syms = [r["symbol"] for r in rows]
         board_df = pd.DataFrame([{
-            "#": r["rank"], T("stack.colsym"): r["symbol"], T("dt.col_signal"): r["signal"],
+            "#": r["rank"], T("stack.colsym"): clean_ticker(r["symbol"]),
+            T("dt.col_signal"): r["signal"],
             T("dt.col_score"): r["score"], "RSI": r["rsi"], "ATR%": r["atr_pct"],
             T("top3.entry"): r["entry"], T("top3.target"): r["target"],
             T("top3.stop"): r["stop"], T("dt.col_rr"): r["rr"], T("dt.col_risk"): r["stop_pct"],
         } for r in rows])
+        board_df.insert(1, "", logo_col(_syms))
         sty = board_df.style.map(lambda v: _SIG_STYLE.get(v, ""), subset=[T("dt.col_signal")])
         sty = sty.format({
             T("dt.col_score"): "{:.0f}", "RSI": "{:.0f}", "ATR%": "{:.1f}%",
             T("top3.entry"): "{:,.0f}", T("top3.target"): "{:,.0f}", T("top3.stop"): "{:,.0f}",
             T("dt.col_rr"): "{:.2f}x", T("dt.col_risk"): "{:.1f}%",
         }, na_rep="—")
-        st.dataframe(sty, width="stretch", hide_index=True)
+        st.dataframe(sty, width="stretch", hide_index=True,
+                     column_config={"": st.column_config.ImageColumn("")})
 
         # short "why" for the actionable (BUY / WATCH) names
         actionable = [r for r in rows if r["signal"] in ("BUY", "WATCH")]
         if actionable:
             for r in actionable[:5]:
-                st.caption(f"**{r['symbol']}** ({r['signal']}) — " + " · ".join(r["why"]))
+                st.caption(f"**{clean_ticker(r['symbol'])}** ({r['signal']}) — "
+                           + " · ".join(r["why"]))
         st.caption(T("dt.cost_warn", pct=f"{board['breakeven_pct']:.2f}"))
 
     # --- daily budget allocation simulation (open) ---
@@ -126,20 +132,23 @@ def render():
                 st.warning(T("dt.risk_warn", pct=fmt(t["risk_pct_capital"], 2),
                              cap=fmt(t.get("risk_warn_pct"), 1)))
 
+            _asyms = [r["symbol"] for r in sim["rows"]]
             alloc_df = pd.DataFrame([{
-                T("stack.colsym"): r["symbol"], T("dt.col_signal"): r["signal"],
+                T("stack.colsym"): clean_ticker(r["symbol"]), T("dt.col_signal"): r["signal"],
                 T("dt.col_lots"): r["lots"], T("dt.col_shares"): r["shares"],
                 T("dt.col_capital"): r["capital"], T("dt.col_weight"): r["pct"],
                 T("top3.entry"): r["entry"], T("top3.stop"): r["stop"],
                 T("top3.target"): r["target"], T("dt.net_gain"): r["gain"],
                 T("dt.net_loss"): r["loss"],
             } for r in sim["rows"]])
+            alloc_df.insert(0, "", logo_col(_asyms))
             st.dataframe(alloc_df.style.format({
                 T("dt.col_shares"): "{:,.0f}", T("dt.col_capital"): "{:,.0f}",
                 T("dt.col_weight"): "{:.0f}%", T("top3.entry"): "{:,.0f}",
                 T("top3.stop"): "{:,.0f}", T("top3.target"): "{:,.0f}",
                 T("dt.net_gain"): "{:,.0f}", T("dt.net_loss"): "{:,.0f}",
-            }, na_rep="—"), width="stretch", hide_index=True)
+            }, na_rep="—"), width="stretch", hide_index=True,
+                column_config={"": st.column_config.ImageColumn("")})
             if sim.get("note"):
                 st.caption(sim["note"])
 

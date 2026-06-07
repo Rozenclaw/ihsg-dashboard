@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import pandas as pd
 
-from ui.common import (CFG, LANG, T, _conv_badge, allocate, db, divcal,
-                       explain, fmt, get_recommendations, st, top3_symbols)
+from ui.common import (CFG, LANG, T, _conv_badge, allocate, clean_ticker, db,
+                       divcal, explain, fmt, get_recommendations, logo_col,
+                       nojk, st, stock_chip, top3_symbols)
 
 
 def top3_section():
@@ -27,7 +28,10 @@ def top3_section():
     cols = st.columns(3)
     for i, (_, r) in enumerate(buys.iterrows()):
         with cols[i]:
-            st.markdown(f"#### {medals[i]} {r['symbol']}")
+            st.markdown(
+                f"<div style='font-size:1.1rem;font-weight:800;display:flex;"
+                f"align-items:center;gap:8px;margin:.1rem 0 .35rem;'>{medals[i]} "
+                f"{stock_chip(r['symbol'], size=26)}</div>", unsafe_allow_html=True)
             st.metric(f"Score · Yield", f"{fmt(r['composite'],0)}/100",
                       f"{fmt(r['div_yield_pct'],2)}% yield" if pd.notna(r['div_yield_pct']) else None)
             ent, tgt, stp = r.get("entry"), r.get("target"), r.get("stop")
@@ -43,9 +47,9 @@ def top3_section():
                 st.markdown(conv)
             if cum and cum != "—":
                 st.caption(f"📅 {cum}")
-            st.caption(f"**{T('top3.why')}:** " + explain.why_today(r.to_dict(), LANG()))
+            st.caption(f"**{T('top3.why')}:** " + nojk(explain.why_today(r.to_dict(), LANG())))
             if r.get("yield_trap"):
-                st.warning(explain.trap_note(r.to_dict(), LANG()))
+                st.warning(nojk(explain.trap_note(r.to_dict(), LANG())))
 
 
 def stacking_section():
@@ -88,7 +92,10 @@ def stacking_section():
     cols = st.columns(len(pl["rows"]))
     for i, r in enumerate(pl["rows"]):
         with cols[i]:
-            st.markdown(f"#### {medals[i]} {r['symbol']}")
+            st.markdown(
+                f"<div style='font-size:1.05rem;font-weight:800;display:flex;"
+                f"align-items:center;gap:8px;margin:.1rem 0 .35rem;'>{medals[i]} "
+                f"{stock_chip(r['symbol'], size=24)}</div>", unsafe_allow_html=True)
             st.metric(f"{r['lots']} lot · {r['shares']:,} shares",
                       fmt(r["cost"], 0),
                       f"{r['pct']:.0f}% · {fmt(r.get('div_yield_pct'),2)}% yield"
@@ -96,8 +103,9 @@ def stacking_section():
             st.caption(f"@ {fmt(r['price'],0)} / share")
 
     # Detail table
+    syms = [r["symbol"] for r in pl["rows"]]
     rows = [{
-        T("stack.colsym"): r["symbol"],
+        T("stack.colsym"): clean_ticker(r["symbol"]),
         T("stack.collots"): r["lots"],
         T("stack.colshares"): r["shares"],
         T("stack.colprice"): r["price"],
@@ -106,11 +114,13 @@ def stacking_section():
         T("stack.colyield"): r.get("div_yield_pct"),
     } for r in pl["rows"]]
     dff = pd.DataFrame(rows)
+    dff.insert(0, "", logo_col(syms))
     st.dataframe(dff.style.format({
         T("stack.colprice"): "{:,.0f}", T("stack.colcost"): "{:,.0f}",
         T("stack.colpct"): "{:.0f}%", T("stack.colyield"): "{:.2f}",
         T("stack.colshares"): "{:,.0f}", T("stack.collots"): "{:.0f}",
-    }, na_rep="—"), width="stretch", hide_index=True)
+    }, na_rep="—"), width="stretch", hide_index=True,
+        column_config={"": st.column_config.ImageColumn("")})
 
     st.caption("🛒 " + T("stack.howto"))
     if pl["note"]:
@@ -146,8 +156,9 @@ def recommendations_section():
             st.rerun()
     with b2:
         if buy_up:
-            st.caption("BUY + uptrend: " + ", ".join(buy_up[:12]) +
-                       (" …" if len(buy_up) > 12 else ""))
+            st.caption("BUY + uptrend: "
+                       + ", ".join(clean_ticker(s) for s in buy_up[:12])
+                       + (" …" if len(buy_up) > 12 else ""))
         else:
             st.caption(T("rec.none_buy_uptrend"))
 
@@ -165,6 +176,10 @@ def recommendations_section():
         "conviction": "Conv",
     })
 
+    _syms = view["symbol"].tolist()
+    view["symbol"] = [clean_ticker(s) for s in _syms]
+    view.insert(0, "", logo_col(_syms))
+
     def _highlight(row):
         color = {"BUY": "#064e3b", "SELL": "#7f1d1d", "HOLD": "#1f2937"}.get(row["action"], "")
         return [f"background-color: {color}" if color else ""] * len(row)
@@ -174,14 +189,20 @@ def recommendations_section():
         "rsi": "{:.0f}", "SectorRank%": "{:.0f}", "Days→cum": "{:.0f}",
         "entry": "{:,.0f}", "target": "{:,.0f}",
         "stop": "{:,.0f}", "lots": "{:.0f}", "Est cost (IDR)": "{:,.0f}",
-    }, na_rep="—"), width="stretch", hide_index=True, height=380)
+    }, na_rep="—"), width="stretch", hide_index=True, height=380,
+        column_config={"": st.column_config.ImageColumn("")})
 
     buy_hold = view[view["action"].isin(["BUY", "HOLD", "SELL"])]
     if not buy_hold.empty:
         with st.expander(T("rec.explain_q")):
+            # view["symbol"] is now the CLEAN ticker; match it back to the raw
+            # df symbol (BBRI -> BBRI.JK) before looking up the explanation.
             for _, r in buy_hold.head(12).iterrows():
-                st.markdown("- " + explain.explain_recommendation(
-                    df[df["symbol"] == r["symbol"]].iloc[0].to_dict(), LANG()))
+                m = df[df["symbol"].map(clean_ticker) == r["symbol"]]
+                if m.empty:
+                    continue
+                st.markdown("- " + nojk(explain.explain_recommendation(
+                    m.iloc[0].to_dict(), LANG())))
     st.caption(T("rec.disclaimer"))
 
 
@@ -189,7 +210,8 @@ def alerts_section(all_syms: list[str]):
     st.caption(T("alert.caption"))
     with st.form("add_alert", clear_on_submit=True):
         a1, a2, a3, a4 = st.columns([2, 1, 1, 1])
-        sym = a1.selectbox(T("alert.symbol"), options=all_syms, key="al_sym")
+        sym = a1.selectbox(T("alert.symbol"), options=all_syms, key="al_sym",
+                           format_func=clean_ticker)
         metric = a2.selectbox(T("alert.metric"), ["price", "rsi"], key="al_metric")
         op = a3.selectbox(T("alert.op"), ["below", "above"], key="al_op")
         thr = a4.number_input(T("alert.threshold"), value=0.0, step=1.0, key="al_thr")
@@ -207,7 +229,7 @@ def alerts_section(all_syms: list[str]):
         for a in rows:
             cols = st.columns([5, 1])
             cols[0].markdown(
-                f"**{a['symbol']}** · {a['metric'].upper()} {a['op']} "
+                f"**{clean_ticker(a['symbol'])}** · {a['metric'].upper()} {a['op']} "
                 f"{a['threshold']:,.0f}" + (f" · _{a['note']}_" if a['note'] else "")
                 + (f"  \n_last fired: {a['last_fired']}_" if a['last_fired'] else ""))
             if cols[1].button("🗑", key=f"del_{a['id']}"):

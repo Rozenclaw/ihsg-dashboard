@@ -3,8 +3,8 @@ and the per-symbol news panel."""
 from __future__ import annotations
 
 from ui.common import (CFG, LANG, RANGES, T, _period_metrics, _slice_range,
-                       _style_fig, db, explain, fmt, get_enriched, go,
-                       indicators, make_subplots, news, st)
+                       _style_fig, clean_ticker, db, explain, fmt, get_enriched,
+                       go, indicators, logo_col, make_subplots, news, nojk, st)
 
 
 def price_chart(symbol: str):
@@ -13,7 +13,7 @@ def price_chart(symbol: str):
         st.info(f"No data for {symbol}.")
         return
     snap = indicators.snapshot(df, CFG)
-    st.info(explain.explain_stock(snap, CFG, symbol, LANG()))
+    st.info(nojk(explain.explain_stock(snap, CFG, symbol, LANG())))
 
     # --- Time-range toggle ---
     rng = st.radio(T("range.label"), RANGES, index=4, horizontal=True,
@@ -36,7 +36,7 @@ def price_chart(symbol: str):
     df = view  # chart the selected window (indicators already computed on full data)
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.72, 0.28],
                         vertical_spacing=0.04,
-                        subplot_titles=(f"{symbol} · {rng}", "RSI(14)"))
+                        subplot_titles=(f"{clean_ticker(symbol)} · {rng}", "RSI(14)"))
     fig.add_trace(go.Candlestick(x=df.index, open=df["open"], high=df["high"],
                                  low=df["low"], close=df["close"], name="OHLC"), row=1, col=1)
     for col, color in [(fast, "#2563eb"), (slow, "#f59e0b")]:
@@ -70,7 +70,7 @@ def price_chart(symbol: str):
 
 
 def watchlist_table(symbols: list[str]):
-    rows = []
+    rows, syms_ok = [], []
     for sym in symbols:
         df = get_enriched(sym)
         if df.empty:
@@ -80,18 +80,21 @@ def watchlist_table(symbols: list[str]):
         price = s["close"]
         div = fund.get("last_dividend")
         dy = (div / price * 100) if (div and price) else None
-        rows.append({"Symbol": sym, "Close": price, "Chg %": s["change_pct"],
+        rows.append({"Symbol": clean_ticker(sym), "Close": price, "Chg %": s["change_pct"],
                      "RSI": s["rsi"], "Trend": s["trend"],
                      "Range pos %": s["range_pos_pct"], "Div yield %": dy})
+        syms_ok.append(sym)
     if not rows:
         st.warning(T("wl.no_data"))
         return
     import pandas as pd
     dfw = pd.DataFrame(rows)
+    dfw.insert(0, "", logo_col(syms_ok))
     st.dataframe(dfw.style.format({
         "Close": "{:,.0f}", "Chg %": "{:+.2f}", "RSI": "{:.0f}",
         "Range pos %": "{:.0f}", "Div yield %": "{:.2f}",
-    }, na_rep="—"), width="stretch", hide_index=True)
+    }, na_rep="—"), width="stretch", hide_index=True,
+        column_config={"": st.column_config.ImageColumn("")})
 
 
 def news_panel(symbol: str):

@@ -7,6 +7,8 @@ can ``from ui.common import db, explain, ...`` without their own path setup.
 """
 from __future__ import annotations
 
+import base64
+import html as _html
 import os
 import sys
 
@@ -77,6 +79,90 @@ def _conv_badge(conviction: str) -> str:
     return {"high": "🟢 " + T("conv.high"),
             "medium": "🟡 " + T("conv.medium"),
             "speculative": "🟠 " + T("conv.speculative")}.get(conviction, "")
+
+
+# --------------------------------------------------------------------------- #
+# Stock branding: clean ticker (no ".JK"), company name (hover), logo chip.    #
+# --------------------------------------------------------------------------- #
+_ASSETS_LOGOS = os.path.join(_ROOT, "assets", "logos")
+
+
+def clean_ticker(symbol: str) -> str:
+    """'BBRI.JK' -> 'BBRI' for DISPLAY only (the real symbol keeps the suffix)."""
+    return str(symbol).split(".")[0]
+
+
+def nojk(text: str) -> str:
+    """Strip the '.JK' suffix from any prose/explanation shown to the user
+    (the suffix only ever appears as an IDX ticker suffix, so this is safe)."""
+    return str(text).replace(".JK", "")
+
+
+@st.cache_data(ttl=3600)
+def _company_names() -> dict:
+    try:
+        return db.load_security_names()
+    except Exception:
+        return {}
+
+
+def company_name(symbol: str) -> str:
+    """Full company name for a symbol (falls back to the clean ticker)."""
+    return _company_names().get(symbol) or clean_ticker(symbol)
+
+
+@st.cache_data(ttl=3600)
+def logo_uri(symbol: str):
+    """base64 data URI of the downloaded logo (assets/logos/TICKER.png), or None.
+    Data URI so it embeds in inline HTML / ImageColumn without static serving."""
+    p = os.path.join(_ASSETS_LOGOS, f"{clean_ticker(symbol)}.png")
+    if os.path.exists(p):
+        try:
+            with open(p, "rb") as f:
+                return "data:image/png;base64," + base64.b64encode(f.read()).decode()
+        except Exception:
+            return None
+    return None
+
+
+def _monogram_uri(symbol: str) -> str:
+    """Inline SVG data URI: ticker initials on the aurora gradient (logo fallback)."""
+    tk = clean_ticker(symbol)
+    ini = _html.escape(tk[:2].upper())
+    svg = (
+        "<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>"
+        "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>"
+        "<stop offset='0' stop-color='#818CF8'/><stop offset='1' stop-color='#22D3EE'/>"
+        "</linearGradient></defs>"
+        "<rect width='64' height='64' rx='14' fill='url(#g)'/>"
+        f"<text x='32' y='42' font-family='Inter,Arial' font-size='28' font-weight='800'"
+        f" fill='#08080f' text-anchor='middle'>{ini}</text></svg>")
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
+
+
+def logo_or_monogram(symbol: str) -> str:
+    """Always returns an image data URI — the real logo if downloaded, else a
+    gradient-monogram fallback (so every stock shows something consistent)."""
+    return logo_uri(symbol) or _monogram_uri(symbol)
+
+
+def logo_col(symbols) -> list:
+    """List of logo data URIs for a dataframe ImageColumn (one per symbol)."""
+    return [logo_or_monogram(s) for s in symbols]
+
+
+def stock_chip(symbol, *, size: int = 22, bold: bool = True, hover: bool = True) -> str:
+    """Inline-HTML chip: [logo] TICKER with the full company name on hover.
+    Use inside st.markdown(..., unsafe_allow_html=True)."""
+    tk = clean_ticker(symbol)
+    title = f' title="{_html.escape(company_name(symbol))}"' if hover else ""
+    img = (f'<img src="{logo_or_monogram(symbol)}" alt="" loading="lazy" '
+           f'style="width:{size}px;height:{size}px;border-radius:6px;object-fit:contain;'
+           f'background:rgba(255,255,255,0.92);padding:1px;flex:0 0 auto;'
+           f'box-shadow:0 1px 4px rgba(0,0,0,0.4);">')
+    label = f"<b>{tk}</b>" if bold else tk
+    return (f'<span style="display:inline-flex;align-items:center;gap:8px;'
+            f'vertical-align:middle;cursor:default;"{title}>{img}{label}</span>')
 
 
 @st.cache_data(ttl=300)

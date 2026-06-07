@@ -430,6 +430,13 @@ def list_symbols(include_index: bool = False) -> list[str]:
         return [r["symbol"] for r in conn.execute(q).fetchall()]
 
 
+def load_security_names() -> dict:
+    """{symbol: company name} for all securities (for display / hover labels)."""
+    with connect() as conn:
+        return {r["symbol"]: r["name"]
+                for r in conn.execute("SELECT symbol, name FROM securities").fetchall()}
+
+
 def last_refresh() -> dict | None:
     with connect() as conn:
         row = conn.execute(

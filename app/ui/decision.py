@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import os
 
-from ui.common import (CFG, LANG, T, _conv_badge, fmt, get_recommendations,
-                       pd, st, theme)
+from ui.common import (CFG, LANG, T, _conv_badge, clean_ticker, fmt,
+                       get_recommendations, logo_col, pd, st, stock_chip, theme)
 from src import decision, airesearch  # noqa: E402  (path set up by ui.common)
 
 
@@ -65,7 +65,10 @@ def render():
         cols = st.columns(len(analysis["picks"]))
         for i, p in enumerate(analysis["picks"]):
             with cols[i]:
-                st.markdown(f"##### {medals[i]} {p['symbol']}")
+                st.markdown(
+                    f"<div style='font-size:1rem;font-weight:800;display:flex;"
+                    f"align-items:center;gap:8px;margin:.1rem 0 .3rem;'>{medals[i]} "
+                    f"{stock_chip(p['symbol'], size=24)}</div>", unsafe_allow_html=True)
                 st.metric("Score · Yield", f"{fmt(p['score'])}/100",
                           f"{fmt(p['yield'], 2)}% yield" if p["yield"] is not None else None)
                 st.markdown(f"**{T('top3.entry')}:** {fmt(p['entry'])} · "
@@ -83,19 +86,23 @@ def render():
 
     # --- risk / reward table (open) ---
     with st.expander("⚖️  " + T("dh.rr_table"), expanded=True):
+        _psyms = [p["symbol"] for p in analysis["picks"]]
         rr_rows = [{
-            T("stack.colsym"): p["symbol"],
+            T("stack.colsym"): clean_ticker(p["symbol"]),
             T("top3.entry"): p["entry"], T("top3.target"): p["target"],
             T("top3.stop"): p["stop"], T("dh.total_capital"): p["capital"],
             T("dh.total_gain"): p["gain"], T("dh.total_loss"): p["loss"],
             "R:R": p["rr"],
         } for p in analysis["picks"]]
-        st.dataframe(pd.DataFrame(rr_rows).style.format({
+        rr_df = pd.DataFrame(rr_rows)
+        rr_df.insert(0, "", logo_col(_psyms))
+        st.dataframe(rr_df.style.format({
             T("top3.entry"): "{:,.0f}", T("top3.target"): "{:,.0f}",
             T("top3.stop"): "{:,.0f}", T("dh.total_capital"): "{:,.0f}",
             T("dh.total_gain"): "{:,.0f}", T("dh.total_loss"): "{:,.0f}",
             "R:R": "{:.2f}x",
-        }, na_rep="—"), width="stretch", hide_index=True)
+        }, na_rep="—"), width="stretch", hide_index=True,
+            column_config={"": st.column_config.ImageColumn("")})
 
     # --- sector concentration (always-visible warnings) ---
     for g in analysis.get("sector_groups", []):

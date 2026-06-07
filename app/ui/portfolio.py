@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from ui.common import (CFG, T, _style_fig, backtest, db, fmt, go, paper,
-                       portfolio, st)
+from ui.common import (CFG, T, _style_fig, backtest, clean_ticker, db, fmt, go,
+                       logo_col, paper, portfolio, st)
 
 
 def paper_portfolio_section():
@@ -35,11 +35,15 @@ def paper_portfolio_section():
 
     if snap["rows"]:
         dfp = pd.DataFrame(snap["rows"])
+        _raw = dfp["Symbol"].tolist()
+        dfp["Symbol"] = [clean_ticker(s) for s in _raw]
+        dfp.insert(0, "", logo_col(_raw))
         st.dataframe(dfp.style.format({
             "Avg price": "{:,.0f}", "Last": "{:,.0f}", "Market value": "{:,.0f}",
             "Unreal P/L": "{:,.0f}", "Unreal P/L %": "{:+.1f}",
             "Target": "{:,.0f}", "Stop": "{:,.0f}", "Lots": "{:.0f}",
-        }, na_rep="—"), width="stretch", hide_index=True)
+        }, na_rep="—"), width="stretch", hide_index=True,
+            column_config={"": st.column_config.ImageColumn("")})
     else:
         st.info(T("paper.no_pos"))
 
@@ -55,6 +59,9 @@ def paper_portfolio_section():
         st.plotly_chart(fig)
     trades = db.load_trades()
     if not trades.empty:
+        if "symbol" in trades.columns:
+            trades = trades.copy()
+            trades["symbol"] = trades["symbol"].map(clean_ticker)
         with st.expander(f"Trade history ({len(trades)})"):
             st.dataframe(trades, width="stretch", hide_index=True)
 
@@ -138,9 +145,14 @@ def portfolio_section(all_syms: list[str]):
     m2.metric(T("port.cost"), fmt(snap["cost"], 0))
     m3.metric(T("port.pl"), fmt(snap["pl"], 0), f"{snap['pl_pct']:+.1f}%")
     if snap["sell_flags"]:
-        st.warning(T("port.sell_warn") + ", ".join(snap["sell_flags"]))
+        st.warning(T("port.sell_warn")
+                   + ", ".join(clean_ticker(s) for s in snap["sell_flags"]))
     dfh = pd.DataFrame(snap["rows"])
+    _raw = dfh["Symbol"].tolist()
+    dfh["Symbol"] = [clean_ticker(s) for s in _raw]
+    dfh.insert(0, "", logo_col(_raw))
     st.dataframe(dfh.style.format({
         "Avg price": "{:,.0f}", "Last": "{:,.0f}", "Cost": "{:,.0f}",
         "Value": "{:,.0f}", "P/L": "{:,.0f}", "P/L %": "{:+.1f}", "Lots": "{:.0f}",
-    }, na_rep="—"), width="stretch", hide_index=True)
+    }, na_rep="—"), width="stretch", hide_index=True,
+        column_config={"": st.column_config.ImageColumn("")})

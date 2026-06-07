@@ -27,9 +27,9 @@ for _p in (_ROOT, _HERE):
         sys.path.insert(0, _p)
 
 # ui.common runs st.set_page_config on import (first st call).
-from ui.common import (CFG, LANG, T, _conv_badge, db, divcal, explain, fmt,  # noqa: E402
-                       get_recommendations, st, strength_radar, theme,
-                       top3_symbols)
+from ui.common import (CFG, LANG, T, _conv_badge, clean_ticker,  # noqa: E402
+                       db, divcal, explain, fmt, get_recommendations, nojk, st,
+                       stock_chip, strength_radar, theme, top3_symbols)
 from ui.header import index_header, live_panel  # noqa: E402
 from ui.recommendations import (alerts_section, recommendations_section,  # noqa: E402
                                 stacking_section, top3_section)
@@ -66,7 +66,12 @@ def render_dashboard():
     with st.expander("🔭  " + T("detail.title"), expanded=True):
         if all_syms:
             sel = st.selectbox(T("detail.symbol"), options=all_syms,
-                               index=all_syms.index(default_wl[0]) if default_wl else 0)
+                               index=all_syms.index(default_wl[0]) if default_wl else 0,
+                               format_func=clean_ticker)
+            st.markdown(
+                f"<div style='display:flex;align-items:center;gap:10px;margin:.1rem 0 .5rem;"
+                f"font-size:1.15rem;font-weight:800;'>{stock_chip(sel, size=34)}</div>",
+                unsafe_allow_html=True)
             fund = db.load_fundamentals(sel)
             if fund:
                 d1, d2, d3, d4 = st.columns(4)
@@ -92,7 +97,7 @@ def render_dashboard():
                 if rowd.get("conviction"):
                     st.caption(_conv_badge(rowd["conviction"]))
                 if rowd.get("yield_trap"):
-                    st.warning(explain.trap_note(rowd, LANG()))
+                    st.warning(nojk(explain.trap_note(rowd, LANG())))
                 rc1, rc2 = st.columns([1, 1])
                 with rc1:
                     st.plotly_chart(strength_radar({**fund, **rowd}))
@@ -105,7 +110,7 @@ def render_dashboard():
     # ---- Secondary sections (collapsed; click to expand) ----
     with st.expander("👁️  " + T("wl.title"), expanded=False):
         watch = st.multiselect(T("wl.tickers"), options=all_syms, key="watchlist",
-                               label_visibility="collapsed")
+                               label_visibility="collapsed", format_func=clean_ticker)
         watchlist_table(watch)
         st.divider()
         live_panel(watch)
