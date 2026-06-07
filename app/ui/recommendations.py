@@ -11,7 +11,6 @@ from ui.common import (CFG, LANG, T, _conv_badge, allocate, db, divcal,
 def top3_section():
     """Highlighted Top-3 BUY picks to stack (accumulate) today, with reasons."""
     df = get_recommendations()
-    st.markdown(f"### {T('top3.title')}")
     last = db.last_refresh()
     asof = last["run_at"][:10] if last else pd.Timestamp.today().strftime("%Y-%m-%d")
     st.caption(f"{T('top3.caption')} · {T('top3.as_of')} {asof}")
@@ -55,12 +54,11 @@ def stacking_section():
     default_n = int(scfg.get("num_stocks", 3))
     default_entry = bool(scfg.get("use_entry_price", True))
 
-    st.markdown(f"### {T('stack.title')}")
     month_name = pd.Timestamp.today().strftime("%B %Y")
     st.caption(f"{T('stack.caption')} · {T('stack.this_month')}: **{month_name}**")
 
-    # Settings tucked away — the default just uses your saved monthly budget.
-    with st.expander(f"⚙️ {T('stack.advanced')}"):
+    # Settings tucked away in a popover — the default just uses your saved budget.
+    with st.popover(f"⚙️ {T('stack.advanced')}"):
         c1, c2, c3 = st.columns([2, 1, 2])
         budget = c1.number_input(T("stack.budget"), min_value=100_000.0,
                                  value=default_budget, step=500_000.0, format="%.0f")
@@ -112,7 +110,7 @@ def stacking_section():
         T("stack.colprice"): "{:,.0f}", T("stack.colcost"): "{:,.0f}",
         T("stack.colpct"): "{:.0f}%", T("stack.colyield"): "{:.2f}",
         T("stack.colshares"): "{:,.0f}", T("stack.collots"): "{:.0f}",
-    }, na_rep="—"), use_container_width=True, hide_index=True)
+    }, na_rep="—"), width="stretch", hide_index=True)
 
     st.caption("🛒 " + T("stack.howto"))
     if pl["note"]:
@@ -121,7 +119,6 @@ def stacking_section():
 
 
 def recommendations_section():
-    st.markdown(f"### {T('rec.title')}")
     st.caption(T("rec.caption"))
     df = get_recommendations()
     if df.empty:
@@ -139,7 +136,7 @@ def recommendations_section():
     b1, b2 = st.columns([2, 3])
     with b1:
         if st.button(T("rec.add_buy_uptrend", n=len(buy_up)),
-                     disabled=not buy_up, use_container_width=True):
+                     disabled=not buy_up, width="stretch"):
             current = set(st.session_state.get("watchlist", []))
             added = [s for s in buy_up if s not in current]
             current.update(buy_up)
@@ -177,7 +174,7 @@ def recommendations_section():
         "rsi": "{:.0f}", "SectorRank%": "{:.0f}", "Days→cum": "{:.0f}",
         "entry": "{:,.0f}", "target": "{:,.0f}",
         "stop": "{:,.0f}", "lots": "{:.0f}", "Est cost (IDR)": "{:,.0f}",
-    }, na_rep="—"), use_container_width=True, hide_index=True, height=380)
+    }, na_rep="—"), width="stretch", hide_index=True, height=380)
 
     buy_hold = view[view["action"].isin(["BUY", "HOLD", "SELL"])]
     if not buy_hold.empty:
@@ -189,7 +186,6 @@ def recommendations_section():
 
 
 def alerts_section(all_syms: list[str]):
-    st.markdown(f"#### {T('alert.title')}")
     st.caption(T("alert.caption"))
     with st.form("add_alert", clear_on_submit=True):
         a1, a2, a3, a4 = st.columns([2, 1, 1, 1])
@@ -198,7 +194,7 @@ def alerts_section(all_syms: list[str]):
         op = a3.selectbox(T("alert.op"), ["below", "above"], key="al_op")
         thr = a4.number_input(T("alert.threshold"), value=0.0, step=1.0, key="al_thr")
         note = st.text_input(T("alert.note"), key="al_note")
-        if st.form_submit_button(T("alert.add"), use_container_width=True):
+        if st.form_submit_button(T("alert.add"), width="stretch"):
             if thr:
                 db.add_alert(sym, metric, op, thr, note)
                 st.toast(T("alert.added"))
@@ -218,7 +214,7 @@ def alerts_section(all_syms: list[str]):
                 db.delete_alert(a["id"])
                 st.rerun()
 
-    if st.button(T("alert.check_now"), use_container_width=True):
+    if st.button(T("alert.check_now"), width="stretch"):
         from src import alerts as _al
         trig = _al.check_alerts(CFG, fire=False)  # dry-run preview, don't dedupe
         if trig:

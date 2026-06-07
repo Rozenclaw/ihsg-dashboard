@@ -4,8 +4,8 @@ from __future__ import annotations
 import pandas as pd
 
 from ui.common import (CFG, LANG, RANGES, T, _period_metrics, _slice_range,
-                       _style_fig, db, explain, fmt, get_enriched, go,
-                       indicators, live, st)
+                       _style_fig, db, explain, fmt, get_enriched, get_live_quotes,
+                       go, indicators, live, st)
 
 
 def _ihsg_hero_chart(df: pd.DataFrame, rng: str):
@@ -71,7 +71,6 @@ def _ihsg_hero_chart(df: pd.DataFrame, rng: str):
 
 def index_header():
     df = get_enriched(CFG["data"]["index_symbol"])
-    st.markdown(f"### {T('index.title')}")
     if df.empty:
         st.warning(T("index.no_data"))
         return
@@ -98,7 +97,7 @@ def index_header():
             f"{T('range.return')} · {rng} · "
             f"{T('range.high')} {pm['high']:,.0f} · {T('range.low')} {pm['low']:,.0f}"
             f"</div>", unsafe_allow_html=True)
-    st.plotly_chart(_ihsg_hero_chart(df, rng), use_container_width=True,
+    st.plotly_chart(_ihsg_hero_chart(df, rng),
                     config={"displayModeBar": False, "scrollZoom": False})
 
     with st.expander(T("index.explain_q")):
@@ -112,13 +111,13 @@ def index_header():
 def _live_panel_body(symbols: list[str]):
     lcfg = CFG.get("live", {})
     syms = symbols[: lcfg.get("max_symbols", 15)]
-    if not live.get_token():
+    if live.needs_token(CFG) and not live.get_token():
         st.info(T("live.no_token"))
         return
     if not syms:
         st.caption("—")
         return
-    quotes = live.fetch_quotes(syms)
+    quotes = get_live_quotes(tuple(syms))
     rows, errors = [], []
     for sym in syms:
         q = quotes.get(sym, {})
@@ -135,11 +134,16 @@ def _live_panel_body(symbols: list[str]):
         st.dataframe(dfq.style.format({
             "Last": "{:,.0f}", "Open": "{:,.0f}", "High": "{:,.0f}", "Low": "{:,.0f}",
             "Chg % (vs open)": "{:+.2f}", "Volume": "{:,.0f}",
-        }, na_rep="—"), use_container_width=True, hide_index=True)
-        st.caption(f"Live · iTick · {T('live.updated')} "
+        }, na_rep="—"), width="stretch", hide_index=True)
+        st.caption(f"{live.provider_label(CFG)} · {T('live.updated')} "
                    f"{pd.Timestamp.now().strftime('%H:%M:%S')} · "
-                   f"{lcfg.get('poll_seconds', 60)}s · IDX ~09:00–16:00 WIB")
+                   f"IDX ~09:00–16:00 WIB")
     if errors:
+        # If nothing came back at all (e.g. an auth/quota problem hits every
+        # symbol, or the market is closed), surface the reason up-front instead
+        # of hiding it in the expander.
+        if not rows:
+            st.warning(f"⚠️ {T('live.unavailable')} — {errors[0].split(': ', 1)[-1]}")
         with st.expander(f"{len(errors)} quote issue(s)"):
             for e in errors:
                 st.text(e)

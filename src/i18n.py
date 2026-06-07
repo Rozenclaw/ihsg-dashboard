@@ -201,7 +201,7 @@ STRINGS: dict[str, dict[str, str]] = {
                       "ID": "ℹ️ Bagaimana cara membaca grafik ini?"},
 
     # Live panel
-    "live.title": {"EN": "🔴 Live quotes (iTick)", "ID": "🔴 Harga live (iTick)"},
+    "live.title": {"EN": "🔴 Live quotes", "ID": "🔴 Harga live"},
     "live.updated": {"EN": "updated", "ID": "diperbarui"},
     "live.no_token": {
         "EN": "Live quotes are off — no iTick API key found. Get a free key at "
@@ -209,6 +209,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "ID": "Harga live nonaktif — API key iTick tidak ditemukan. Dapatkan key "
               "gratis di https://itick.org lalu set ITICK_TOKEN (env atau "
               ".streamlit/secrets.toml)."},
+    "live.unavailable": {"EN": "Live quotes unavailable",
+                         "ID": "Harga live tidak tersedia"},
 
     # Paper portfolio
     "paper.title": {"EN": "💼 Paper portfolio (simulated)",
@@ -247,6 +249,7 @@ STRINGS: dict[str, dict[str, str]] = {
     # Navigation
     "nav.dashboard": {"EN": "Dashboard", "ID": "Dashboard"},
     "nav.decision": {"EN": "Decision Helper", "ID": "Bantuan Keputusan"},
+    "nav.daytrade": {"EN": "Daily Trading", "ID": "Trading Harian"},
 
     # Decision Helper page
     "dh.title": {"EN": "🧭 Decision Helper — BUY stacking",
@@ -282,11 +285,143 @@ STRINGS: dict[str, dict[str, str]] = {
                             "analysis instead.",
                       "ID": "Narasi AI tidak tersedia ({why}). Menampilkan analisa "
                             "bawaan."},
-    "dh.ai_failed": {"EN": "AI couldn't generate a narrative this time — showing the "
-                           "built-in analysis.",
-                     "ID": "AI gagal membuat narasi kali ini — menampilkan analisa "
-                           "bawaan."},
+    "dh.ai_failed": {"EN": "AI couldn't generate a narrative this time (rate limit or "
+                           "network). Try again in a moment.",
+                     "ID": "AI gagal membuat narasi kali ini (rate limit atau jaringan). "
+                           "Coba lagi sebentar."},
+    "dh.press_hint": {"EN": "Press **✨ Write AI research narrative** above to generate "
+                            "the written analysis.",
+                      "ID": "Tekan **✨ Tulis narasi riset AI** di atas untuk membuat "
+                            "analisa tertulis."},
     "dh.download": {"EN": "⬇️ Download as Markdown", "ID": "⬇️ Unduh sebagai Markdown"},
+
+    # Daily Trading page (liquid-universe swing shortlist + budget simulation)
+    "dt.title": {"EN": "📊 Daily Trading — Liquid Swing Shortlist",
+                 "ID": "📊 Trading Harian — Shortlist Swing Saham Likuid"},
+    "dt.explainer": {
+        "EN": "This page builds a daily-refreshed shortlist of liquid blue-chip "
+              "names that look good for short-hold **swing** trading — **not** "
+              "intraday scalping. Each candidate gets a 0–100 day-score from trend "
+              "alignment, momentum, RSI entry timing, pullback quality, and volume "
+              "confirmation, then a clear **BUY / WATCH / AVOID** signal with model "
+              "entry, stop-loss, and target levels. You set a daily budget and the "
+              "engine splits it across the top BUY picks in whole lots, so you see "
+              "lots, cost, and risk/reward before you open your broker app. "
+              "\"Daily\" means the *list* is updated every day — you still hold each "
+              "trade for several days to weeks, not seconds.",
+        "ID": "Halaman ini menyusun shortlist harian saham blue-chip likuid yang "
+              "potensial untuk **swing** trading jangka pendek — **bukan** scalping "
+              "intraday. Tiap kandidat diberi day-score 0–100 dari keselarasan "
+              "trend, momentum, timing entry lewat RSI, kualitas pullback, dan "
+              "konfirmasi volume, lalu sinyal jelas **BUY / WATCH / AVOID** lengkap "
+              "dengan level entry, stop-loss, dan target dari model. Anda menentukan "
+              "budget harian, lalu engine membaginya ke pilihan BUY teratas dalam "
+              "lot penuh, jadi Anda lihat lot, biaya, dan risk/reward sebelum buka "
+              "aplikasi broker. \"Harian\" berarti *daftarnya* di-refresh tiap hari "
+              "— tiap posisi tetap di-hold beberapa hari hingga minggu, bukan detik."},
+    "dt.universe": {"EN": "Universe scored", "ID": "Saham dinilai"},
+    "dt.buys": {"EN": "BUY signals", "ID": "Sinyal BUY"},
+    "dt.watch_n": {"EN": "WATCH", "ID": "WATCH"},
+    "dt.avoid_n": {"EN": "AVOID", "ID": "AVOID"},
+    "dt.board_title": {"EN": "📋 Today's shortlist (Top {n})",
+                       "ID": "📋 Shortlist hari ini (Top {n})"},
+    "dt.candidate_note": {
+        "EN": "Signals are **candidates for your own review — not buy instructions**.",
+        "ID": "Sinyal adalah **kandidat untuk Anda tinjau sendiri — bukan instruksi "
+              "beli**."},
+    "dt.col_signal": {"EN": "Signal", "ID": "Sinyal"},
+    "dt.col_score": {"EN": "Score", "ID": "Score"},
+    "dt.col_rr": {"EN": "R:R", "ID": "R:R"},
+    "dt.col_risk": {"EN": "Stop %", "ID": "Stop %"},
+    "dt.col_why": {"EN": "Why", "ID": "Alasan"},
+    "dt.col_lots": {"EN": "Lots", "ID": "Lot"},
+    "dt.col_shares": {"EN": "Shares", "ID": "Shares"},
+    "dt.col_weight": {"EN": "%", "ID": "%"},
+    "dt.cost_warn": {
+        "EN": "⚠️ Round-trip cost ≈ **{pct}%** (fees + 0.1% sell tax) — price must "
+              "rise that much just to break even. Frequent trading erodes a small budget.",
+        "ID": "⚠️ Biaya per putaran ≈ **{pct}%** (fee + pajak jual 0,1%) — harga harus "
+              "naik segitu hanya untuk balik modal. Sering trading menggerus modal kecil."},
+    "dt.sim_title": {"EN": "🧮 Daily budget allocation", "ID": "🧮 Alokasi budget harian"},
+    "dt.capital": {"EN": "Total trading capital (Rp)", "ID": "Total modal trading (Rp)"},
+    "dt.budget": {"EN": "Today's budget (Rp)", "ID": "Budget hari ini (Rp)"},
+    "dt.num": {"EN": "Max stocks", "ID": "Maks saham"},
+    "dt.include_watch": {"EN": "Also allocate to WATCH (lower-confidence)",
+                         "ID": "Ikut alokasikan ke WATCH (keyakinan lebih rendah)"},
+    "dt.watch_used": {"EN": "Including WATCH names — lower confidence; size down.",
+                      "ID": "Termasuk nama WATCH — keyakinan lebih rendah; perkecil ukuran."},
+    "dt.sim_run": {"EN": "🧮 Simulate allocation", "ID": "🧮 Simulasikan alokasi"},
+    "dt.sim_hint": {"EN": "Set your budget and press **🧮 Simulate allocation**.",
+                    "ID": "Atur budget lalu tekan **🧮 Simulasikan alokasi**."},
+    "dt.spent": {"EN": "Spent", "ID": "Terpakai"},
+    "dt.leftover": {"EN": "Leftover cash", "ID": "Sisa cash"},
+    "dt.net_gain": {"EN": "Net gain at target", "ID": "Net gain di target"},
+    "dt.net_loss": {"EN": "Net loss if stopped", "ID": "Net loss bila kena stop"},
+    "dt.net_rr": {"EN": "Net R:R", "ID": "Net R:R"},
+    "dt.risk_vs_capital": {"EN": "Risk vs capital", "ID": "Risiko vs modal"},
+    "dt.col_capital": {"EN": "Capital", "ID": "Modal"},
+    "dt.budget_gt_capital": {
+        "EN": "⚠️ Your daily budget is larger than your total capital — usually the "
+              "daily budget is just a slice of it.",
+        "ID": "⚠️ Budget harian Anda lebih besar dari total modal — biasanya budget "
+              "harian hanyalah sebagian kecil dari modal."},
+    "dt.risk_warn": {
+        "EN": "⚠️ Total risk if every stop is hit is **{pct}%** of your capital — above "
+              "the {cap}% comfort line. Consider fewer names or a smaller budget.",
+        "ID": "⚠️ Total risiko bila semua kena stop = **{pct}%** dari modal — di atas "
+              "batas nyaman {cap}%. Pertimbangkan kurangi saham atau perkecil budget."},
+    "dt.tips_title": {"EN": "✅ Beginner rules", "ID": "✅ Aturan untuk pemula"},
+    "dt.tips": {
+        "EN": "- Trade only liquid names (LQ45/IDX30-grade) — they're easy to exit "
+              "when you need out.\n"
+              "- Risk at most **1% of your capital per trade** (beginners: start at 0.5%).\n"
+              "- **ALWAYS set your stop-loss before you buy**, never after.\n"
+              "- Only take trades with **R:R of 2 or higher** — skip anything below.\n"
+              "- Never chase: avoid RSI above 70 and ARA spikes; enter on volume confirmation.\n"
+              "- **Never average down past your stop** — a stop hit means the idea was wrong, exit.\n"
+              "- Paper-trade the shortlist for a few weeks before risking real money.",
+        "ID": "- Trade hanya saham likuid (kelas LQ45/IDX30) — mudah di-exit saat perlu keluar.\n"
+              "- Risiko maksimal **1% dari modal per trade** (pemula: mulai dari 0,5%).\n"
+              "- **SELALU pasang stop-loss sebelum beli**, jangan setelahnya.\n"
+              "- Ambil hanya trade dengan **R:R 2 atau lebih** — lewati yang di bawah itu.\n"
+              "- Jangan FOMO: hindari RSI di atas 70 dan saham yang sudah ARA; masuk saat ada konfirmasi volume.\n"
+              "- **Jangan average down menembus stop** — stop kena artinya ide-nya salah, langsung exit.\n"
+              "- Paper-trading dulu shortlist ini beberapa minggu sebelum pakai uang sungguhan."},
+    "dt.caveats_title": {"EN": "⚠️ Honest caveats", "ID": "⚠️ Catatan jujur"},
+    "dt.caveats": {
+        "EN": "- This is a daily-refreshed **swing** shortlist, not intraday scalping — "
+              "you still hold each trade for days to weeks.\n"
+              "- Backtested swing win rates run roughly 50–65%, but **past performance "
+              "is no guarantee of future results**.\n"
+              "- Transaction costs (~0.15–0.25% per side + 0.1% sell tax) quietly eat a "
+              "small budget if you overtrade.\n"
+              "- Scores and entry/stop/target are **model levels** from daily OHLCV data — "
+              "not predictions, and they can be wrong.\n"
+              "- The universe is a small set of stored blue-chips, so on quiet days there "
+              "may be **few or no clean BUY picks** — that's normal.",
+        "ID": "- Ini shortlist **swing** yang di-refresh harian, bukan scalping intraday — "
+              "tiap posisi tetap di-hold beberapa hari hingga minggu.\n"
+              "- Win rate swing dari backtest berkisar 50–65%, tapi **performa masa lalu "
+              "bukan jaminan hasil ke depan**.\n"
+              "- Biaya transaksi (~0,15–0,25% per sisi + pajak jual 0,1%) diam-diam "
+              "menggerus modal kecil kalau Anda overtrade.\n"
+              "- Score dan level entry/stop/target adalah **level model** dari data OHLCV "
+              "harian — bukan prediksi, dan bisa meleset.\n"
+              "- Universe-nya kumpulan kecil blue-chip tersimpan, jadi di hari sepi bisa "
+              "**sedikit atau tanpa pilihan BUY yang bersih** — itu normal."},
+    "dt.disclaimer": {
+        "EN": "⚠️ Decision-support only — **not financial advice**. Set your stop and "
+              "verify before trading.",
+        "ID": "⚠️ Hanya alat bantu keputusan — **bukan saran finansial**. Pasang stop dan "
+              "verifikasi sebelum bertransaksi."},
+    "dt.ai_title": {"EN": "🤖 AI coach note (optional)", "ID": "🤖 Catatan AI coach (opsional)"},
+    "dt.gen_ai": {"EN": "✨ Write AI coach note", "ID": "✨ Tulis catatan AI coach"},
+    "dt.ai_on": {"EN": "✨ AI-written coach note", "ID": "✨ Catatan ditulis AI"},
+    "dt.ai_spinner": {"EN": "Writing the analysis…", "ID": "Sedang menulis analisa…"},
+    "dt.press_hint": {"EN": "Press **✨ Write AI coach note** to get a written, risk-first "
+                            "read-through of today's shortlist.",
+                      "ID": "Tekan **✨ Tulis catatan AI coach** untuk ulasan tertulis "
+                            "(fokus risiko) atas shortlist hari ini."},
 }
 
 

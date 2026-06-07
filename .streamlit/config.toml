@@ -1,25 +1,26 @@
-# Dark theme tuned for a MacBook Air M1 (≈1440×900). Streamlit 1.50's sanitizer
-# drops large injected <style> blocks, so density/aesthetics are set NATIVELY
-# here (reliable) rather than via CSS. baseFontSize is the main density lever:
-# 14px shrinks everything ~12%, fitting more on the ~790px height and sizing the
-# metric value down so single-word values like "Downtrend" no longer clip.
+# COSMIC-AURORA premium theme. The deep visuals (aurora mesh, glow orbs, grain,
+# glass cards, animations) are injected reliably via the iframe trick in
+# src/theme.py (DOMPurify drops big <style> blocks from st.markdown). These
+# NATIVE values set the near-black base + accent so the FIRST paint and all
+# native widgets already match the cosmic palette before the CSS layer lands
+# (minimises flash-of-unstyled-content). baseFontSize keeps MacBook-Air density.
 [theme]
 base = "dark"
-primaryColor = "#5eead4"
-backgroundColor = "#0a0e17"
-secondaryBackgroundColor = "#121826"
-textColor = "#e8edf4"
+primaryColor = "#818CF8"
+backgroundColor = "#07070B"
+secondaryBackgroundColor = "#0E0E1A"
+textColor = "#F5F6FA"
 font = "sans-serif"
 baseFontSize = 14
-baseRadius = "0.85rem"
-borderColor = "#1e2a3f"
+baseRadius = "0.9rem"
+borderColor = "#1c1c2b"
 showWidgetBorder = true
 showSidebarBorder = true
-dataframeBorderColor = "#1e2a3f"
+dataframeBorderColor = "#1c1c2b"
 # Denser h1–h4 so section titles (###, ####) don't eat vertical space.
 headingFontSizes = ["2.0rem", "1.6rem", "1.3rem", "1.05rem"]
-# Chart palette matching the teal/indigo accent.
-chartCategoricalColors = ["#5eead4", "#818cf8", "#f472b6", "#fbbf24", "#34d399"]
+# Chart palette matching the cosmic indigo / cyan / violet accents.
+chartCategoricalColors = ["#818CF8", "#38E1F0", "#C084FC", "#34D399", "#FB7185"]
 
 [server]
 headless = true

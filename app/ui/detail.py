@@ -64,7 +64,7 @@ def price_chart(symbol: str):
                       xaxis_rangeslider_visible=False, showlegend=True,
                       legend=dict(orientation="h", y=1.02))
     _style_fig(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
     with st.expander(T("chart.howto_q")):
         st.markdown(explain.legend_help(LANG()))
 
@@ -91,7 +91,7 @@ def watchlist_table(symbols: list[str]):
     st.dataframe(dfw.style.format({
         "Close": "{:,.0f}", "Chg %": "{:+.2f}", "RSI": "{:.0f}",
         "Range pos %": "{:.0f}", "Div yield %": "{:.2f}",
-    }, na_rep="—"), use_container_width=True, hide_index=True)
+    }, na_rep="—"), width="stretch", hide_index=True)
 
 
 def news_panel(symbol: str):

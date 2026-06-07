@@ -1,17 +1,32 @@
 """Sidebar: language switch, data-refresh controls, and the auto-refresh loop."""
 from __future__ import annotations
 
-from ui.common import CFG, LANG, T, db, i18n, st
+from ui.common import LANG, T, db, i18n, st
+
+
+def _set_lang(code: str):
+    """on_click callback: set the UI language. Runs before the rerun, so the
+    whole app (nav + every page) re-renders in the new language in ONE click."""
+    st.session_state["lang"] = code
 
 
 def sidebar_data_controls():
     import datetime as _dt
     from src import fetch
 
-    st.sidebar.radio(
-        i18n.t("side.language", LANG()), options=["EN", "ID"],
-        format_func=lambda c: "🇬🇧 English" if c == "EN" else "🇮🇩 Bahasa Indonesia",
-        key="lang", horizontal=True)
+    # Language switch via two buttons (not st.radio): a button fires reliably on
+    # the FIRST click and its on_click callback commits before the rerun, so a
+    # single click switches the entire app. (st.radio dropped the first click;
+    # st.segmented_control could deselect to None.)
+    cur = LANG()
+    st.sidebar.caption(i18n.t("side.language", cur))
+    lc1, lc2 = st.sidebar.columns(2)
+    lc1.button("🇬🇧 English", key="lang_en", width="stretch",
+               type="primary" if cur == "EN" else "secondary",
+               on_click=_set_lang, args=("EN",))
+    lc2.button("🇮🇩 Indonesia", key="lang_id", width="stretch",
+               type="primary" if cur == "ID" else "secondary",
+               on_click=_set_lang, args=("ID",))
     st.sidebar.divider()
 
     st.sidebar.header(T("side.data"))
@@ -22,7 +37,7 @@ def sidebar_data_controls():
     else:
         st.sidebar.caption(T("side.no_data"))
 
-    if st.sidebar.button(T("side.refresh_now"), use_container_width=True, type="primary"):
+    if st.sidebar.button(T("side.refresh_now"), width="stretch", type="primary"):
         with st.spinner(T("side.refreshing")):
             try:
                 summary = fetch.refresh(full_universe=False, with_fundamentals=True,

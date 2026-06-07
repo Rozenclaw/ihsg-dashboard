@@ -9,7 +9,7 @@ from ui.common import (CFG, T, _style_fig, backtest, db, fmt, go, paper,
 
 
 def paper_portfolio_section():
-    st.markdown(f"### {T('paper.title')}")
+    st.markdown(f"#### {T('paper.title')}")
     st.caption(T("paper.caption"))
     snap = paper.portfolio_snapshot(CFG)
     c1, c2, c3, c4 = st.columns(4)
@@ -21,13 +21,13 @@ def paper_portfolio_section():
 
     b1, b2 = st.columns(2)
     with b1:
-        if st.button(T("paper.advance"), use_container_width=True):
+        if st.button(T("paper.advance"), width="stretch"):
             res = paper.run_day(CFG)
             st.cache_data.clear()
             st.toast("Paper day: " + (", ".join(res["actions"]) or "no trades"))
             st.rerun()
     with b2:
-        if st.button(T("paper.reset"), use_container_width=True):
+        if st.button(T("paper.reset"), width="stretch"):
             paper.reset(CFG)
             st.cache_data.clear()
             st.toast("Reset")
@@ -39,7 +39,7 @@ def paper_portfolio_section():
             "Avg price": "{:,.0f}", "Last": "{:,.0f}", "Market value": "{:,.0f}",
             "Unreal P/L": "{:,.0f}", "Unreal P/L %": "{:+.1f}",
             "Target": "{:,.0f}", "Stop": "{:,.0f}", "Lots": "{:.0f}",
-        }, na_rep="—"), use_container_width=True, hide_index=True)
+        }, na_rep="—"), width="stretch", hide_index=True)
     else:
         st.info(T("paper.no_pos"))
 
@@ -52,11 +52,11 @@ def paper_portfolio_section():
         fig.update_layout(height=210, margin=dict(l=10, r=10, t=10, b=10),
                           showlegend=False, title="Equity curve")
         _style_fig(fig)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
     trades = db.load_trades()
     if not trades.empty:
         with st.expander(f"Trade history ({len(trades)})"):
-            st.dataframe(trades, use_container_width=True, hide_index=True)
+            st.dataframe(trades, width="stretch", hide_index=True)
 
 
 @st.cache_data(ttl=1800)
@@ -73,13 +73,13 @@ def _run_backtest(lookback: int, rebalance: int, maxpos: int) -> dict:
 
 
 def backtest_section():
-    st.markdown(f"### {T('bt.title')}")
+    st.markdown(f"#### {T('bt.title')}")
     st.caption(T("bt.caption"))
     c1, c2, c3, c4 = st.columns(4)
     lookback = c1.selectbox(T("bt.lookback"), [126, 252, 504, 756], index=2)
     rebalance = c2.selectbox(T("bt.rebalance"), [1, 5, 10, 20], index=1)
     maxpos = c3.selectbox(T("bt.maxpos"), [5, 8, 10, 15], index=2)
-    run = c4.button(T("bt.run"), use_container_width=True)
+    run = c4.button(T("bt.run"), width="stretch")
     if not run:
         st.info(T("bt.set_params"))
         return
@@ -106,18 +106,17 @@ def backtest_section():
         fig.update_layout(height=250, margin=dict(l=10, r=10, t=10, b=10),
                           showlegend=False, title="Backtest equity curve")
         _style_fig(fig)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
 
 
 def portfolio_section(all_syms: list[str]):
-    st.markdown(f"### {T('port.title')}")
     st.caption(T("port.caption"))
-    with st.expander("➕ Import / paste holdings (CSV)"):
+    with st.popover("➕ Import / paste holdings (CSV)"):
         sample = "symbol,lots,avg_price,note\nBBRI,10,4100,core\nPTBA,5,2800,dividend"
         text = st.text_area("CSV", value="", placeholder=sample, height=120,
                             label_visibility="collapsed")
         ci1, ci2 = st.columns(2)
-        if ci1.button(T("port.import"), use_container_width=True):
+        if ci1.button(T("port.import"), width="stretch"):
             n, errs = portfolio.import_csv(text, replace=True)
             st.cache_data.clear()
             if n:
@@ -125,7 +124,7 @@ def portfolio_section(all_syms: list[str]):
             if errs:
                 st.warning("; ".join(errs[:4]))
             st.rerun()
-        if ci2.button(T("port.clear"), use_container_width=True):
+        if ci2.button(T("port.clear"), width="stretch"):
             db.clear_holdings()
             st.cache_data.clear()
             st.rerun()
@@ -144,4 +143,4 @@ def portfolio_section(all_syms: list[str]):
     st.dataframe(dfh.style.format({
         "Avg price": "{:,.0f}", "Last": "{:,.0f}", "Cost": "{:,.0f}",
         "Value": "{:,.0f}", "P/L": "{:,.0f}", "P/L %": "{:+.1f}", "Lots": "{:.0f}",
-    }, na_rep="—"), use_container_width=True, hide_index=True)
+    }, na_rep="—"), width="stretch", hide_index=True)

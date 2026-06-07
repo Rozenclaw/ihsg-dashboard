@@ -50,16 +50,23 @@ def snapshot(df_enriched: pd.DataFrame, cfg: dict) -> dict:
     """Latest-row summary used by the dashboard tables."""
     if df_enriched is None or df_enriched.empty:
         return {}
-    last = df_enriched.iloc[-1]
+    close_series = df_enriched["close"].dropna()
+    if close_series.empty:
+        return {}
+    last_idx = close_series.index[-1]
+    last = df_enriched.loc[last_idx]
     ind = cfg.get("indicators", {})
     fast = f"sma{ind.get('sma_fast', 50)}"
     slow = f"sma{ind.get('sma_slow', 200)}"
-    close = float(last["close"]) if pd.notna(last["close"]) else None
-    prev_close = float(df_enriched["close"].iloc[-2]) if len(df_enriched) > 1 else None
+    close = float(close_series.iloc[-1])
+    prev_close = float(close_series.iloc[-2]) if len(close_series) > 1 else None
     chg_pct = ((close - prev_close) / prev_close * 100) if close and prev_close else None
-    high_52 = float(df_enriched["close"].tail(252).max())
-    low_52 = float(df_enriched["close"].tail(252).min())
-    rng_pos = ((close - low_52) / (high_52 - low_52) * 100) if high_52 > low_52 else None
+    range_close = close_series.tail(252)
+    high_52 = float(range_close.max()) if not range_close.empty else None
+    low_52 = float(range_close.min()) if not range_close.empty else None
+    rng_pos = ((close - low_52) / (high_52 - low_52) * 100
+               if high_52 is not None and low_52 is not None and high_52 > low_52
+               else None)
 
     trend = "—"
     if pd.notna(last.get(fast)) and pd.notna(last.get(slow)):

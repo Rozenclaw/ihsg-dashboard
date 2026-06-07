@@ -26,13 +26,14 @@ from src import (db, indicators, live, strategy, explain, paper,  # noqa: E402,F
                  backtest, i18n, divcal, portfolio, news, theme, allocate)
 from src.config import get_config  # noqa: E402
 
-# Plotly template tuned to the glass theme: transparent bg, soft grid, Inter.
+# Plotly template tuned to the cosmic-aurora glass theme: transparent bg so the
+# aurora backdrop shows through the chart's glass frame, soft grid, Inter.
 PLOTLY_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     font=dict(family="Inter, sans-serif", color="#cdd6e6", size=12),
-    xaxis=dict(gridcolor="rgba(255,255,255,0.05)", zerolinecolor="rgba(255,255,255,0.08)"),
-    yaxis=dict(gridcolor="rgba(255,255,255,0.05)", zerolinecolor="rgba(255,255,255,0.08)"),
-    colorway=["#5eead4", "#818cf8", "#f472b6", "#fbbf24", "#34d399"],
+    xaxis=dict(gridcolor="rgba(255,255,255,0.06)", zerolinecolor="rgba(255,255,255,0.08)"),
+    yaxis=dict(gridcolor="rgba(255,255,255,0.06)", zerolinecolor="rgba(255,255,255,0.08)"),
+    colorway=["#818CF8", "#38E1F0", "#C084FC", "#34D399", "#FB7185"],
 )
 
 # Time-range presets for the IHSG hero + stock detail (label -> calendar window).
@@ -87,6 +88,18 @@ def get_enriched(symbol: str) -> pd.DataFrame:
 def get_recommendations() -> pd.DataFrame:
     recs = strategy.evaluate_universe(CFG)
     return pd.DataFrame([r.as_row() for r in recs])
+
+
+# Cache live quotes for a short window so repeated reruns (interactions, the
+# auto-refresh fragment, language toggle, …) reuse ONE provider call instead of
+# re-hitting Yahoo/iTick each time. TTL from config live.cache_seconds, clamped
+# to 60-120s. Keyed by the symbol set; the Refresh button clears all caches.
+_LIVE_TTL = max(60, min(120, int((CFG.get("live") or {}).get("cache_seconds", 90))))
+
+
+@st.cache_data(ttl=_LIVE_TTL, show_spinner=False)
+def get_live_quotes(symbols: tuple) -> dict:
+    return live.fetch_quotes(list(symbols), cfg=CFG)
 
 
 def top3_symbols() -> list[str]:
@@ -162,8 +175,8 @@ def strength_radar(row: dict):
     cats = list(axes.keys()) + [list(axes.keys())[0]]
     vals = list(axes.values()) + [list(axes.values())[0]]
     fig = go.Figure(go.Scatterpolar(r=vals, theta=cats, fill="toself",
-                                    line=dict(color="#5eead4", width=2),
-                                    fillcolor="rgba(94,234,212,0.18)"))
+                                    line=dict(color="#818CF8", width=2),
+                                    fillcolor="rgba(129,140,248,0.20)"))
     fig.update_layout(height=230, margin=dict(l=28, r=28, t=28, b=16),
                       polar=dict(bgcolor="rgba(0,0,0,0)",
                                  radialaxis=dict(visible=True, range=[0, 100],

@@ -126,9 +126,21 @@ def fetch_quote(symbol: str, token: Optional[str] = None,
         out["error"] = payload.get("msg") or f"api_code={payload.get('code')}"
         return out
 
-    d = payload.get("data") or {}
+    d = payload.get("data")
     if isinstance(d, list):  # some responses wrap a single item in a list
-        d = d[0] if d else {}
+        d = d[0] if d else None
+    if not d:
+        # iTick can return code 0 with an EMPTY payload and the real reason in
+        # `msg` — e.g. "auth failed" for a rejected/expired/over-quota key, or no
+        # quote outside IDX hours. Surface that instead of a silent blank so the
+        # panel shows WHY there's no data.
+        msg = (payload.get("msg") or payload.get("message") or "").strip()
+        low = msg.lower()
+        if "auth" in low or "key" in low or "token" in low:
+            out["error"] = f"{msg} — check your iTick key/quota at itick.org"
+        else:
+            out["error"] = msg or "no quote (market may be closed)"
+        return out
     out.update({
         "last": _num(d.get("ld") if d.get("ld") is not None else d.get("p")),
         "open": _num(d.get("o")),
@@ -141,14 +153,39 @@ def fetch_quote(symbol: str, token: Optional[str] = None,
     return out
 
 
-def fetch_quotes(symbols: list[str], token: Optional[str] = None,
-                 pause: float = 1.1) -> dict[str, dict]:
-    """Fetch live quotes for several symbols (polite sequential calls).
+# ----------------------------- provider selection -------------------------
 
-    Free tier is rate-limited (~1 request/second). We pace calls ~1.1s apart
-    and each call retries with backoff on 429. Keep watchlists small (<= ~15)
-    and the poll interval >= 60s.
+def provider(cfg: Optional[dict] = None) -> str:
+    """Which live source: 'yahoo' (default — no key, no quota) or 'itick'."""
+    cfg = cfg or {}
+    return str((cfg.get("live") or {}).get("provider", "yahoo")).lower()
+
+
+def needs_token(cfg: Optional[dict] = None) -> bool:
+    """Only the iTick provider needs an API token; Yahoo needs none."""
+    return provider(cfg) == "itick"
+
+
+def provider_label(cfg: Optional[dict] = None) -> str:
+    return {"itick": "iTick", "yahoo": "Yahoo (delayed)"}.get(
+        provider(cfg), provider(cfg))
+
+
+def fetch_quotes(symbols: list[str], token: Optional[str] = None,
+                 pause: float = 1.1, cfg: Optional[dict] = None) -> dict[str, dict]:
+    """Fetch quotes for several symbols via the configured provider.
+
+    Default 'yahoo' uses yfinance: ONE batch call, no API key, no quota — quotes
+    are delayed ~15 min. 'itick' uses the iTick realtime REST API (needs a key,
+    free tier is heavily rate-limited).
     """
+    if provider(cfg) == "itick":
+        return _itick_fetch_quotes(symbols, token=token, pause=pause)
+    return _yahoo_fetch_quotes(symbols)
+
+
+def _itick_fetch_quotes(symbols, token=None, pause=1.1):
+    """iTick path: polite sequential calls (free tier ~1 req/s) with backoff."""
     tok = get_token(token)
     results: dict[str, dict] = {}
     sess = requests.Session()
@@ -157,6 +194,61 @@ def fetch_quotes(symbols: list[str], token: Optional[str] = None,
         if pause and i < len(symbols) - 1:
             time.sleep(pause)
     return results
+
+
+def _blank(symbol: str) -> dict:
+    return {"symbol": symbol, "last": None, "open": None, "high": None,
+            "low": None, "volume": None, "prev_close": None, "ts": None,
+            "ok": False, "error": None}
+
+
+def _yahoo_fetch_quotes(symbols: list[str]) -> dict[str, dict]:
+    """Delayed quotes from Yahoo (yfinance) in ONE batch call — no key/quota.
+
+    Uses recent daily bars: the latest bar is the live-ish quote (Yahoo updates
+    the current day's bar intraday, ~15 min delayed) and equals the last close
+    when the market is shut. Robust both during and outside IDX hours.
+    """
+    out = {s: _blank(s) for s in symbols}
+    if not symbols:
+        return out
+    try:
+        import yfinance as yf
+        df = yf.download(list(symbols), period="5d", interval="1d",
+                         group_by="ticker", progress=False, auto_adjust=False,
+                         threads=True)
+    except Exception as e:
+        for s in symbols:
+            out[s]["error"] = f"{type(e).__name__}: {e}"
+        return out
+    if df is None or df.empty:
+        for s in symbols:
+            out[s]["error"] = "no data (Yahoo)"
+        return out
+    multi = hasattr(df.columns, "nlevels") and df.columns.nlevels > 1
+    lvl0 = set(df.columns.get_level_values(0)) if multi else set()
+    for s in symbols:
+        try:
+            sub = df[s] if (multi and s in lvl0) else df
+            sub = sub.dropna(how="all")
+            if sub.empty:
+                out[s]["error"] = "no data"
+                continue
+            row = sub.iloc[-1]
+            prev = sub.iloc[-2] if len(sub) >= 2 else None
+            last = _num(row.get("Close"))
+            out[s].update({
+                "last": last, "open": _num(row.get("Open")),
+                "high": _num(row.get("High")), "low": _num(row.get("Low")),
+                "volume": _num(row.get("Volume")),
+                "prev_close": _num(prev.get("Close")) if prev is not None else None,
+                "ts": str(sub.index[-1])[:10], "ok": last is not None,
+            })
+            if last is None:
+                out[s]["error"] = "no price"
+        except Exception as e:
+            out[s]["error"] = f"{type(e).__name__}: {e}"
+    return out
 
 
 def _num(v):
