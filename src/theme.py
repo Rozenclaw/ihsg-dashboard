@@ -355,6 +355,35 @@ section[data-testid="stMain"] .block-container > div > [data-testid="stVerticalB
      transition-duration:.001ms !important; }
   #aurora-orn .pt{ display:none; }
 }
+
+/* ---------------- Mobile performance tier --------------------------------- *
+ * On phones the live backdrop-blur and the perpetual particle / spinning-border
+ * animations are the dominant GPU cost (every drifting pixel behind a glass card
+ * forces it to re-blur). Drop ONLY those on small screens — the palette,
+ * gradients, glass look, rounded cards and every feature stay. The difference is
+ * near-invisible on a phone but the scroll/interaction FPS and battery improve a
+ * lot. Desktop keeps the full premium fidelity. */
+@media (max-width:820px){
+  /* swap live backdrop-blur for a near-identical solid glass */
+  [data-testid="stMetric"], [data-testid="stExpander"] details,
+  [data-testid="stSidebar"]>div:first-child, [data-testid="stPopoverBody"],
+  [data-baseweb="popover"] [role="dialog"], .aurora-hero, [data-baseweb="select"]>div{
+    backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+  [data-testid="stMetric"]{ background:rgba(20,20,34,0.72); }
+  [data-testid="stExpander"] details{ background:rgba(18,18,30,0.74); }
+  [data-testid="stSidebar"]>div:first-child{ background:rgba(10,10,18,0.97) !important; }
+  [data-testid="stPopoverBody"], [data-baseweb="popover"] [role="dialog"]{
+    background:rgba(16,16,28,0.98) !important; }
+  .aurora-hero{ background:linear-gradient(135deg, rgba(46,48,96,0.55), rgba(20,44,64,0.5) 60%, rgba(60,40,96,0.5)); }
+  /* stop perpetual repaints (particles, film grain, spinning hero border) */
+  #aurora-orn .pt{ display:none; }
+  #aurora-orn .grain{ display:none; }
+  #aurora-orn .orb{ filter:blur(46px); opacity:.4; }
+  .aurora-hero::after{ animation:none; opacity:.5; }
+  /* don't re-run the entrance stagger on every interaction -> snappier reruns */
+  section[data-testid="stMain"] .block-container > div > [data-testid="stVerticalBlock"] > div{
+    animation:none !important; }
+}
 """
 
 
@@ -364,6 +393,10 @@ section[data-testid="stMain"] .block-container > div > [data-testid="stVerticalB
 _JS = """
 (function(){
   var doc = window.parent.document, win = window.parent;
+  // On phones / touch screens skip the perpetual particles + cursor parallax
+  // (no hover there, and they're the main idle GPU cost). The CSS mobile tier
+  // handles the rest. Desktop keeps the full animated experience.
+  var lite = win.matchMedia && win.matchMedia('(max-width:820px),(pointer:coarse)').matches;
   // 1) stylesheet
   var ID='aurora-css', tag=doc.getElementById(ID);
   if(!tag){ tag=doc.createElement('style'); tag.id=ID; doc.head.appendChild(tag); }
@@ -376,7 +409,7 @@ _JS = """
       '<div class="orb o2"></div><div class="orb o3"></div>'+
       '<div class="grid"></div><div class="grain"></div>';
     var reduce = win.matchMedia && win.matchMedia('(prefers-reduced-motion:reduce)').matches;
-    if(!reduce){
+    if(!reduce && !lite){
       for(var i=0;i<12;i++){
         var p=doc.createElement('div'); p.className='pt';
         var L=(i*8.1+4)%%100, dur=14+(i%%7)*3, delay=-(i*1.9), drift=((i%%5)-2)*22;
@@ -390,7 +423,7 @@ _JS = """
     doc.body.insertBefore(orn, doc.body.firstChild);
   }
   // 3) cursor-reactive aurora highlight + subtle orb parallax (listeners once)
-  if(!win.__auroraInit){
+  if(!win.__auroraInit && !lite){
     win.__auroraInit=true;
     var root=doc.documentElement, raf=null, mx=50, my=18;
     win.addEventListener('pointermove', function(e){
@@ -418,9 +451,15 @@ _JS = """
 
 def inject(st) -> None:
     """Inject the premium theme + ornaments into the PARENT document via the
-    iframe trick. Call once per rerun (idempotent). height=0 keeps it invisible."""
+    iframe trick. The injected <style> and ornament layers live in the PARENT
+    document and survive Streamlit reruns, so we inject only ONCE per session —
+    spawning a fresh component iframe + re-evaluating the script on every rerun is
+    wasted work that adds latency to each interaction. height=0 keeps it invisible."""
+    if st.session_state.get("_theme_injected"):
+        return
     payload = "<script>%s</script>" % (_JS % {"css": CSS})
     components.html(payload, height=0, width=0)
+    st.session_state["_theme_injected"] = True
 
 
 # --------------------------------------------------------------------------- #

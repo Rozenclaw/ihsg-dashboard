@@ -14,6 +14,8 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import net.ahacommerce.ihsg.databinding.ActivityMainBinding
 
 /**
@@ -32,6 +34,17 @@ class MainActivity : AppCompatActivity() {
         b = ActivityMainBinding.inflate(layoutInflater)
         setContentView(b.root)
 
+        // Android 15/16 (targetSdk 36) draws the app edge-to-edge, i.e. UNDER the
+        // status & navigation bars. Pad the content by the system-bar + cutout
+        // insets so the page header isn't hidden behind the phone's status bar.
+        ViewCompat.setOnApplyWindowInsetsListener(b.root) { v, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
+
         val web = b.web
         web.setBackgroundColor(Color.parseColor("#07070B"))
 
@@ -48,6 +61,7 @@ class MainActivity : AppCompatActivity() {
             loadWithOverviewMode = true
             useWideViewPort = true
             mediaPlaybackRequiresUserGesture = false
+            offscreenPreRaster = true   // smoother scrolling (fewer white tiles)
             // Keep the default mobile user-agent so Streamlit serves its mobile layout.
         }
 
