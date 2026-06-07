@@ -79,15 +79,17 @@ def ensure_data() -> bool:
     #    refresh is a handful of batched requests (feasible on the free tier);
     #    fundamentals stay at seed values (they change slowly). Best effort: on
     #    failure we keep serving the seed snapshot.
-    if _on_cloud() and _due_for_refresh():
-        try:
+    # Wrap the WHOLE check+refresh: a data refresh failing must never crash the
+    # app — worst case we just serve the seed snapshot.
+    try:
+        if _on_cloud() and _due_for_refresh():
             from src import fetch
             with st.spinner("📡 Updating the latest IHSG prices… "
                             "(first load can take a minute)"):
                 fetch.refresh(full_universe=True, with_fundamentals=False,
                               verbose=False)
             st.cache_data.clear()       # drop recs/prices cached from stale data
-        except Exception:
-            pass
+    except Exception:
+        pass
 
     return True
