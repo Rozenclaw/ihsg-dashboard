@@ -99,12 +99,11 @@ class MainActivity : AppCompatActivity() {
             if (url.startsWith("http")) openExternally(Uri.parse(url))
         }
 
-        b.swipe.setOnRefreshListener { web.reload() }
-        b.swipe.setColorSchemeColors(
-            Color.parseColor("#818CF8"),
-            Color.parseColor("#22D3EE"),
-            Color.parseColor("#8B5CF6"),
-        )
+        // Pull-to-refresh is disabled: an accidental pull while scrolling back up
+        // to the top was reloading the page — which starts a fresh Streamlit
+        // session and forced a re-login. Refresh data with the in-app sidebar
+        // "Refresh" button instead.
+        b.swipe.isEnabled = false
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {

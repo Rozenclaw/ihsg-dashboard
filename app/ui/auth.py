@@ -11,6 +11,7 @@ page renders or any data is loaded.
 """
 from __future__ import annotations
 
+import hashlib
 import hmac
 import os
 
@@ -32,13 +33,24 @@ def _configured_password() -> str | None:
     return None
 
 
+def _token(password: str) -> str:
+    """A non-secret, password-derived token kept in the URL query string so a
+    logged-in WebView stays authenticated across page reloads / app restore
+    (Streamlit's session — and thus the in-memory login flag — resets on reload)."""
+    return hashlib.sha256(("ihsg-auth::" + password).encode()).hexdigest()[:24]
+
+
 def require_login() -> None:
-    """Block the app with a password screen unless either (a) no password is
-    configured, or (b) the visitor already authenticated this session."""
+    """Block the app with a password screen unless (a) no password is configured,
+    (b) the visitor already authenticated this session, or (c) the URL carries a
+    valid auth token (so a refresh / app-restore doesn't force a re-login)."""
     password = _configured_password()
     if not password:                # no password set -> open (local dev)
         return
-    if st.session_state.get("_auth_ok"):
+    token = _token(password)
+    qp = st.query_params.get("k")
+    if st.session_state.get("_auth_ok") or (qp and hmac.compare_digest(str(qp), token)):
+        st.session_state["_auth_ok"] = True
         return
 
     # --- styled login screen ---
@@ -55,6 +67,10 @@ def require_login() -> None:
         if ok:
             if hmac.compare_digest(entered or "", password):
                 st.session_state["_auth_ok"] = True
+                try:
+                    st.query_params["k"] = token   # persist across reloads / restore
+                except Exception:
+                    pass
                 st.rerun()
             else:
                 st.error("Wrong password — try again.")
