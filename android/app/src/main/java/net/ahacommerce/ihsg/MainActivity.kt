@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -24,7 +25,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityMainBinding
     private val startUrl: String by lazy { getString(R.string.dashboard_url) }
-    private val appHost: String by lazy { Uri.parse(startUrl).host ?: "" }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,6 +34,12 @@ class MainActivity : AppCompatActivity() {
 
         val web = b.web
         web.setBackgroundColor(Color.parseColor("#07070B"))
+
+        // Persist cookies so Streamlit Cloud's login/auth handshake (which bounces
+        // via share.streamlit.io and back) completes INSIDE the WebView.
+        CookieManager.getInstance().setAcceptCookie(true)
+        CookieManager.getInstance().setAcceptThirdPartyCookies(web, true)
+
         web.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
@@ -52,16 +58,10 @@ class MainActivity : AppCompatActivity() {
             ): Boolean {
                 val url = request.url
                 val scheme = url.scheme ?: ""
-                if (scheme == "http" || scheme == "https") {
-                    val host = url.host ?: ""
-                    // Keep the dashboard (and any *.streamlit.app) inside the app;
-                    // send everything else (news links, AI Studio, etc.) to the browser.
-                    return if (host == appHost || host.endsWith(".streamlit.app")) {
-                        false
-                    } else {
-                        openExternally(url); true
-                    }
-                }
+                // Keep ALL web navigation inside the app — including Streamlit
+                // Cloud's auth redirects through share.streamlit.io — so it never
+                // bounces out to Chrome. Only non-web schemes go to the system.
+                if (scheme == "http" || scheme == "https") return false
                 // mailto:, tel:, intent:, etc. -> hand off to the system.
                 openExternally(url)
                 return true
