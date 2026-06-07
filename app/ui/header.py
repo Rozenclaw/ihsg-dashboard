@@ -5,7 +5,7 @@ import pandas as pd
 
 from ui.common import (CFG, LANG, RANGES, T, _period_metrics, _slice_range,
                        _style_fig, clean_ticker, db, explain, fmt, get_enriched,
-                       get_live_quotes, go, indicators, live, logo_col, st)
+                       get_live_quotes, go, indicators, live, st, stock_table)
 
 
 def _ihsg_hero_chart(df: pd.DataFrame, rng: str):
@@ -132,12 +132,10 @@ def _live_panel_body(symbols: list[str]):
             errors.append(f"{clean_ticker(sym)}: {q.get('error') or 'no data'}")
     if rows:
         dfq = pd.DataFrame(rows)
-        dfq.insert(0, "", logo_col(ok_syms))
-        st.dataframe(dfq.style.format({
+        stock_table(dfq, symbol_col="Symbol", raw_symbols=ok_syms, fmt={
             "Last": "{:,.0f}", "Open": "{:,.0f}", "High": "{:,.0f}", "Low": "{:,.0f}",
             "Chg % (vs open)": "{:+.2f}", "Volume": "{:,.0f}",
-        }, na_rep="—"), width="stretch", hide_index=True,
-            column_config={"": st.column_config.ImageColumn("")})
+        }, max_height=360)
         st.caption(f"{live.provider_label(CFG)} · {T('live.updated')} "
                    f"{pd.Timestamp.now().strftime('%H:%M:%S')} · "
                    f"IDX ~09:00–16:00 WIB")

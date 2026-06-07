@@ -9,7 +9,8 @@ from __future__ import annotations
 import os
 
 from ui.common import (CFG, LANG, T, _conv_badge, clean_ticker, fmt,
-                       get_recommendations, logo_col, pd, st, stock_chip, theme)
+                       get_recommendations, pd, st, stock_chip, stock_table,
+                       theme, ticker_hover)
 from src import decision, airesearch  # noqa: E402  (path set up by ui.common)
 
 
@@ -95,18 +96,21 @@ def render():
             "R:R": p["rr"],
         } for p in analysis["picks"]]
         rr_df = pd.DataFrame(rr_rows)
-        rr_df.insert(0, "", logo_col(_psyms))
-        st.dataframe(rr_df.style.format({
+        stock_table(rr_df, symbol_col=T("stack.colsym"), raw_symbols=_psyms, fmt={
             T("top3.entry"): "{:,.0f}", T("top3.target"): "{:,.0f}",
             T("top3.stop"): "{:,.0f}", T("dh.total_capital"): "{:,.0f}",
             T("dh.total_gain"): "{:,.0f}", T("dh.total_loss"): "{:,.0f}",
             "R:R": "{:.2f}x",
-        }, na_rep="—"), width="stretch", hide_index=True,
-            column_config={"": st.column_config.ImageColumn("")})
+        })
 
-    # --- sector concentration (always-visible warnings) ---
+    # --- sector concentration (always-visible warnings; tickers hover-named) ---
     for g in analysis.get("sector_groups", []):
-        st.warning(T("dh.sector_warn") + ", ".join(g["symbols"]) + f"  ·  {g['sector']}")
+        chips = ", ".join(ticker_hover(s, bold=False) for s in g["symbols"])
+        st.markdown(
+            f"<div style='background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.32);"
+            f"border-radius:12px;padding:.55rem .85rem;margin:.3rem 0;color:#fde68a;font-size:.9rem;'>"
+            f"⚠️ {T('dh.sector_warn')}{chips}  ·  {g['sector']}</div>",
+            unsafe_allow_html=True)
 
     # --- written analysis (AI optional, deterministic fallback; collapsed) ---
     with st.expander("📝  " + T("dh.full_report"), expanded=False):

@@ -27,7 +27,7 @@ for _p in (_ROOT, _HERE):
         sys.path.insert(0, _p)
 
 # ui.common runs st.set_page_config on import (first st call).
-from ui.common import (CFG, LANG, T, _conv_badge, clean_ticker,  # noqa: E402
+from ui.common import (CFG, LANG, T, _conv_badge, clean_ticker, company_name,  # noqa: E402
                        db, divcal, explain, fmt, get_recommendations, nojk, st,
                        stock_chip, strength_radar, theme, top3_symbols)
 from ui.header import index_header, live_panel  # noqa: E402
@@ -37,6 +37,8 @@ from ui.detail import news_panel, price_chart, watchlist_table  # noqa: E402
 from ui.portfolio import (backtest_section, paper_portfolio_section,  # noqa: E402
                           portfolio_section)
 from ui.sidebar import sidebar_data_controls  # noqa: E402
+from ui.auth import require_login  # noqa: E402
+from ui.bootstrap import ensure_data  # noqa: E402
 from ui import decision as decision_page  # noqa: E402
 from ui import daytrade as daytrade_page  # noqa: E402
 
@@ -69,8 +71,11 @@ def render_dashboard():
                                index=all_syms.index(default_wl[0]) if default_wl else 0,
                                format_func=clean_ticker)
             st.markdown(
-                f"<div style='display:flex;align-items:center;gap:10px;margin:.1rem 0 .5rem;"
-                f"font-size:1.15rem;font-weight:800;'>{stock_chip(sel, size=34)}</div>",
+                f"<div style='display:flex;align-items:center;gap:12px;margin:.1rem 0 .5rem;"
+                f"flex-wrap:wrap;'>"
+                f"<span style='font-size:1.2rem;font-weight:800;'>{stock_chip(sel, size=34)}</span>"
+                f"<span style='color:#9aa7bd;font-size:1.02rem;font-weight:500;'>"
+                f"{company_name(sel)}</span></div>",
                 unsafe_allow_html=True)
             fund = db.load_fundamentals(sel)
             if fund:
@@ -136,6 +141,14 @@ def render_dashboard():
 
 
 # ----------------------------- app shell --------------------------------
+
+# Public-deployment password gate. No-op when APP_PASSWORD is unset (local dev);
+# on a public host it blocks everything below until the visitor signs in.
+require_login()
+
+# On ephemeral cloud hosts (Community Cloud), seed the DB from the committed
+# snapshot and freshen it to today's data before anything renders. No-op locally.
+ensure_data()
 
 # Shared sidebar (language + data controls) renders on every page. Call it
 # before navigation so LANG() reflects the chosen language in the nav titles.

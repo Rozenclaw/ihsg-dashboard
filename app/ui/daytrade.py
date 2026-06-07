@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import os
 
-from ui.common import (CFG, LANG, T, clean_ticker, fmt, logo_col, pd, st,
-                       theme)
+from ui.common import (CFG, LANG, T, clean_ticker, fmt, pd, st, stock_table,
+                       theme, ticker_hover)
 from src import daytrade, airesearch  # noqa: E402  (path set up by ui.common)
 
 
@@ -74,22 +74,24 @@ def render():
             T("top3.entry"): r["entry"], T("top3.target"): r["target"],
             T("top3.stop"): r["stop"], T("dt.col_rr"): r["rr"], T("dt.col_risk"): r["stop_pct"],
         } for r in rows])
-        board_df.insert(1, "", logo_col(_syms))
-        sty = board_df.style.map(lambda v: _SIG_STYLE.get(v, ""), subset=[T("dt.col_signal")])
-        sty = sty.format({
+        _sigcol = T("dt.col_signal")
+
+        def _sigstyle(col, v, rd):
+            return _SIG_STYLE.get(v, "") if col == _sigcol else ""
+
+        stock_table(board_df, symbol_col=T("stack.colsym"), raw_symbols=_syms,
+                    cell_style=_sigstyle, fmt={
             T("dt.col_score"): "{:.0f}", "RSI": "{:.0f}", "ATR%": "{:.1f}%",
             T("top3.entry"): "{:,.0f}", T("top3.target"): "{:,.0f}", T("top3.stop"): "{:,.0f}",
             T("dt.col_rr"): "{:.2f}x", T("dt.col_risk"): "{:.1f}%",
-        }, na_rep="—")
-        st.dataframe(sty, width="stretch", hide_index=True,
-                     column_config={"": st.column_config.ImageColumn("")})
+        })
 
         # short "why" for the actionable (BUY / WATCH) names
         actionable = [r for r in rows if r["signal"] in ("BUY", "WATCH")]
         if actionable:
             for r in actionable[:5]:
-                st.caption(f"**{clean_ticker(r['symbol'])}** ({r['signal']}) — "
-                           + " · ".join(r["why"]))
+                st.caption(f"{ticker_hover(r['symbol'])} ({r['signal']}) — "
+                           + " · ".join(r["why"]), unsafe_allow_html=True)
         st.caption(T("dt.cost_warn", pct=f"{board['breakeven_pct']:.2f}"))
 
     # --- daily budget allocation simulation (open) ---
@@ -141,14 +143,13 @@ def render():
                 T("top3.target"): r["target"], T("dt.net_gain"): r["gain"],
                 T("dt.net_loss"): r["loss"],
             } for r in sim["rows"]])
-            alloc_df.insert(0, "", logo_col(_asyms))
-            st.dataframe(alloc_df.style.format({
+            stock_table(alloc_df, symbol_col=T("stack.colsym"), raw_symbols=_asyms,
+                        cell_style=_sigstyle, fmt={
                 T("dt.col_shares"): "{:,.0f}", T("dt.col_capital"): "{:,.0f}",
                 T("dt.col_weight"): "{:.0f}%", T("top3.entry"): "{:,.0f}",
                 T("top3.stop"): "{:,.0f}", T("top3.target"): "{:,.0f}",
                 T("dt.net_gain"): "{:,.0f}", T("dt.net_loss"): "{:,.0f}",
-            }, na_rep="—"), width="stretch", hide_index=True,
-                column_config={"": st.column_config.ImageColumn("")})
+            })
             if sim.get("note"):
                 st.caption(sim["note"])
 

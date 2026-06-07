@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">IHSG Dashboard</string>
+
+    <!-- ▼▼▼  EDIT THIS after deploying to Streamlit Community Cloud.  ▼▼▼
+         Paste your app's public URL, e.g. https://ihsg-dashboard.streamlit.app
+         This is the ONLY thing you change in the Android project; rebuild the
+         APK once after editing. -->
+    <string name="dashboard_url">https://YOUR-APP-NAME.streamlit.app</string>
+</resources>

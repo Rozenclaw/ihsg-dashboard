@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ui.common import (CFG, LANG, RANGES, T, _period_metrics, _slice_range,
                        _style_fig, clean_ticker, db, explain, fmt, get_enriched,
-                       go, indicators, logo_col, make_subplots, news, nojk, st)
+                       go, indicators, make_subplots, news, nojk, st, stock_table)
 
 
 def price_chart(symbol: str):
@@ -89,12 +89,10 @@ def watchlist_table(symbols: list[str]):
         return
     import pandas as pd
     dfw = pd.DataFrame(rows)
-    dfw.insert(0, "", logo_col(syms_ok))
-    st.dataframe(dfw.style.format({
+    stock_table(dfw, symbol_col="Symbol", raw_symbols=syms_ok, fmt={
         "Close": "{:,.0f}", "Chg %": "{:+.2f}", "RSI": "{:.0f}",
         "Range pos %": "{:.0f}", "Div yield %": "{:.2f}",
-    }, na_rep="—"), width="stretch", hide_index=True,
-        column_config={"": st.column_config.ImageColumn("")})
+    })
 
 
 def news_panel(symbol: str):

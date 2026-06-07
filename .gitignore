@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 data/*.db
+!data/seed.db
 data/*.db.bak-*
 data/*.db-shm
 data/*.db-wal

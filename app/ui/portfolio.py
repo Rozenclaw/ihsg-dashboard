@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 
 from ui.common import (CFG, T, _style_fig, backtest, clean_ticker, db, fmt, go,
-                       logo_col, paper, portfolio, st)
+                       paper, portfolio, st, stock_table)
 
 
 def paper_portfolio_section():
@@ -37,13 +37,11 @@ def paper_portfolio_section():
         dfp = pd.DataFrame(snap["rows"])
         _raw = dfp["Symbol"].tolist()
         dfp["Symbol"] = [clean_ticker(s) for s in _raw]
-        dfp.insert(0, "", logo_col(_raw))
-        st.dataframe(dfp.style.format({
+        stock_table(dfp, symbol_col="Symbol", raw_symbols=_raw, fmt={
             "Avg price": "{:,.0f}", "Last": "{:,.0f}", "Market value": "{:,.0f}",
             "Unreal P/L": "{:,.0f}", "Unreal P/L %": "{:+.1f}",
             "Target": "{:,.0f}", "Stop": "{:,.0f}", "Lots": "{:.0f}",
-        }, na_rep="—"), width="stretch", hide_index=True,
-            column_config={"": st.column_config.ImageColumn("")})
+        })
     else:
         st.info(T("paper.no_pos"))
 
@@ -59,11 +57,15 @@ def paper_portfolio_section():
         st.plotly_chart(fig)
     trades = db.load_trades()
     if not trades.empty:
-        if "symbol" in trades.columns:
-            trades = trades.copy()
-            trades["symbol"] = trades["symbol"].map(clean_ticker)
         with st.expander(f"Trade history ({len(trades)})"):
-            st.dataframe(trades, width="stretch", hide_index=True)
+            if "symbol" in trades.columns:
+                _raw = trades["symbol"].tolist()
+                disp = trades.copy()
+                disp["symbol"] = [clean_ticker(s) for s in _raw]
+                stock_table(disp, symbol_col="symbol", raw_symbols=_raw,
+                            fmt={"price": "{:,.0f}", "value": "{:,.0f}", "lots": "{:.0f}"})
+            else:
+                st.dataframe(trades, width="stretch", hide_index=True)
 
 
 @st.cache_data(ttl=1800)
@@ -150,9 +152,7 @@ def portfolio_section(all_syms: list[str]):
     dfh = pd.DataFrame(snap["rows"])
     _raw = dfh["Symbol"].tolist()
     dfh["Symbol"] = [clean_ticker(s) for s in _raw]
-    dfh.insert(0, "", logo_col(_raw))
-    st.dataframe(dfh.style.format({
+    stock_table(dfh, symbol_col="Symbol", raw_symbols=_raw, fmt={
         "Avg price": "{:,.0f}", "Last": "{:,.0f}", "Cost": "{:,.0f}",
         "Value": "{:,.0f}", "P/L": "{:,.0f}", "P/L %": "{:+.1f}", "Lots": "{:.0f}",
-    }, na_rep="—"), width="stretch", hide_index=True,
-        column_config={"": st.column_config.ImageColumn("")})
+    })

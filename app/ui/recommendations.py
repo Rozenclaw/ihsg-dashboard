@@ -5,8 +5,8 @@ from __future__ import annotations
 import pandas as pd
 
 from ui.common import (CFG, LANG, T, _conv_badge, allocate, clean_ticker, db,
-                       divcal, explain, fmt, get_recommendations, logo_col,
-                       nojk, st, stock_chip, top3_symbols)
+                       divcal, explain, fmt, get_recommendations, nojk, st,
+                       stock_chip, stock_table, ticker_hover, top3_symbols)
 
 
 def top3_section():
@@ -114,13 +114,11 @@ def stacking_section():
         T("stack.colyield"): r.get("div_yield_pct"),
     } for r in pl["rows"]]
     dff = pd.DataFrame(rows)
-    dff.insert(0, "", logo_col(syms))
-    st.dataframe(dff.style.format({
+    stock_table(dff, symbol_col=T("stack.colsym"), raw_symbols=syms, fmt={
         T("stack.colprice"): "{:,.0f}", T("stack.colcost"): "{:,.0f}",
         T("stack.colpct"): "{:.0f}%", T("stack.colyield"): "{:.2f}",
         T("stack.colshares"): "{:,.0f}", T("stack.collots"): "{:.0f}",
-    }, na_rep="—"), width="stretch", hide_index=True,
-        column_config={"": st.column_config.ImageColumn("")})
+    })
 
     st.caption("🛒 " + T("stack.howto"))
     if pl["note"]:
@@ -157,8 +155,9 @@ def recommendations_section():
     with b2:
         if buy_up:
             st.caption("BUY + uptrend: "
-                       + ", ".join(clean_ticker(s) for s in buy_up[:12])
-                       + (" …" if len(buy_up) > 12 else ""))
+                       + ", ".join(ticker_hover(s, bold=False) for s in buy_up[:12])
+                       + (" …" if len(buy_up) > 12 else ""),
+                       unsafe_allow_html=True)
         else:
             st.caption(T("rec.none_buy_uptrend"))
 
@@ -178,19 +177,18 @@ def recommendations_section():
 
     _syms = view["symbol"].tolist()
     view["symbol"] = [clean_ticker(s) for s in _syms]
-    view.insert(0, "", logo_col(_syms))
 
-    def _highlight(row):
-        color = {"BUY": "#064e3b", "SELL": "#7f1d1d", "HOLD": "#1f2937"}.get(row["action"], "")
-        return [f"background-color: {color}" if color else ""] * len(row)
+    def _rowbg(col, v, rd):
+        c = {"BUY": "rgba(6,78,59,0.5)", "SELL": "rgba(127,29,29,0.5)",
+             "HOLD": "rgba(31,41,55,0.55)"}.get(rd.get("action"), "")
+        return f"background:{c};" if c else ""
 
-    st.dataframe(view.style.apply(_highlight, axis=1).format({
+    stock_table(view, symbol_col="symbol", raw_symbols=_syms, cell_style=_rowbg, fmt={
         "Score": "{:.0f}", "Fund": "{:.0f}", "Tech": "{:.0f}", "Yield%": "{:.2f}",
         "rsi": "{:.0f}", "SectorRank%": "{:.0f}", "Days→cum": "{:.0f}",
         "entry": "{:,.0f}", "target": "{:,.0f}",
         "stop": "{:,.0f}", "lots": "{:.0f}", "Est cost (IDR)": "{:,.0f}",
-    }, na_rep="—"), width="stretch", hide_index=True, height=380,
-        column_config={"": st.column_config.ImageColumn("")})
+    }, max_height=400)
 
     buy_hold = view[view["action"].isin(["BUY", "HOLD", "SELL"])]
     if not buy_hold.empty:
@@ -229,9 +227,10 @@ def alerts_section(all_syms: list[str]):
         for a in rows:
             cols = st.columns([5, 1])
             cols[0].markdown(
-                f"**{clean_ticker(a['symbol'])}** · {a['metric'].upper()} {a['op']} "
+                f"{ticker_hover(a['symbol'])} · {a['metric'].upper()} {a['op']} "
                 f"{a['threshold']:,.0f}" + (f" · _{a['note']}_" if a['note'] else "")
-                + (f"  \n_last fired: {a['last_fired']}_" if a['last_fired'] else ""))
+                + (f"  \n_last fired: {a['last_fired']}_" if a['last_fired'] else ""),
+                unsafe_allow_html=True)
             if cols[1].button("🗑", key=f"del_{a['id']}"):
                 db.delete_alert(a["id"])
                 st.rerun()
@@ -241,6 +240,6 @@ def alerts_section(all_syms: list[str]):
         trig = _al.check_alerts(CFG, fire=False)  # dry-run preview, don't dedupe
         if trig:
             for t in trig:
-                st.success(_al.format_alert(t))
+                st.success(nojk(_al.format_alert(t)))
         else:
             st.info(T("alert.none_triggered"))

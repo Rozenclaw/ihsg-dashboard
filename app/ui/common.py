@@ -151,6 +151,65 @@ def logo_col(symbols) -> list:
     return [logo_or_monogram(s) for s in symbols]
 
 
+def ticker_hover(symbol, *, bold: bool = True) -> str:
+    """Inline ticker text (no logo) with the full company name on hover. For use
+    in markdown/caption prose via unsafe_allow_html=True."""
+    tk = clean_ticker(symbol)
+    label = f"<b>{tk}</b>" if bold else tk
+    return f'<span class="tkr" title="{_html.escape(company_name(symbol))}">{label}</span>'
+
+
+def stock_table(df, *, symbol_col, raw_symbols, fmt=None, cell_style=None,
+                logo_size: int = 20, max_height: int = 430) -> None:
+    """Render a DataFrame as a glass HTML table where the `symbol_col` cell shows
+    a logo + clean ticker with the full company name on HOVER (every other
+    st.dataframe lacks per-cell tooltips). `fmt` maps column -> python format
+    string; `cell_style(col, value, rowdict) -> css` adds per-cell inline style
+    (row highlights, signal colours). `raw_symbols` aligns 1:1 with df rows."""
+    fmt = fmt or {}
+    cols = list(df.columns)
+    head = "".join(
+        f'<th class="{"lft" if c == symbol_col else "rgt"}">{_html.escape(str(c))}</th>'
+        for c in cols)
+    body = []
+    for i, rd in enumerate(df.to_dict("records")):
+        tds = []
+        for c in cols:
+            v = rd.get(c)
+            extra = ""
+            if cell_style:
+                try:
+                    extra = cell_style(c, v, rd) or ""
+                except Exception:
+                    extra = ""
+            if c == symbol_col:
+                cls, inner = "lft", stock_chip(raw_symbols[i], size=logo_size)
+            else:
+                cls = "rgt"
+                na = v is None
+                try:
+                    na = na or bool(pd.isna(v))
+                except Exception:
+                    na = (v is None)
+                if na:
+                    inner = "—"
+                elif c in fmt:
+                    try:
+                        inner = _html.escape(fmt[c].format(v))
+                    except Exception:
+                        inner = _html.escape(str(v))
+                else:
+                    inner = _html.escape(str(v))
+            sattr = f' style="{extra}"' if extra else ""
+            tds.append(f'<td class="{cls}"{sattr}>{inner}</td>')
+        body.append(f"<tr>{''.join(tds)}</tr>")
+    mh = f"max-height:{max_height}px;" if max_height else ""
+    st.markdown(
+        f'<div class="stk-wrap" style="{mh}"><table class="stk">'
+        f'<thead><tr>{head}</tr></thead><tbody>{"".join(body)}</tbody></table></div>',
+        unsafe_allow_html=True)
+
+
 def stock_chip(symbol, *, size: int = 22, bold: bool = True, hover: bool = True) -> str:
     """Inline-HTML chip: [logo] TICKER with the full company name on hover.
     Use inside st.markdown(..., unsafe_allow_html=True)."""

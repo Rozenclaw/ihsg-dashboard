@@ -218,6 +218,23 @@ span[data-baseweb="tag"]{
   box-shadow:var(--bevel), var(--shadow);
   background:linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.10)); }
 
+/* ---------------- Custom HTML stock tables (per-cell hover tooltips) ------- */
+.stk-wrap{ overflow:auto; border:1px solid var(--hair); border-radius:14px;
+  box-shadow:var(--bevel), var(--shadow);
+  background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.10)); }
+.stk{ border-collapse:collapse; width:100%; font-size:.85rem; }
+.stk thead th{ position:sticky; top:0; z-index:1; padding:.5rem .7rem; white-space:nowrap;
+  font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--mute); background:rgba(12,12,22,0.97); border-bottom:1px solid var(--hair); }
+.stk th.lft{ text-align:left; } .stk th.rgt{ text-align:right; }
+.stk tbody td{ padding:.4rem .7rem; white-space:nowrap; border-bottom:1px solid rgba(255,255,255,0.05);
+  font-variant-numeric:tabular-nums; }
+.stk td.lft{ text-align:left; color:var(--text); } .stk td.rgt{ text-align:right; color:var(--dim); }
+.stk tbody tr{ transition:background .15s; }
+.stk tbody tr:hover{ background:rgba(99,102,241,0.09); }
+.stk tbody tr:last-child td{ border-bottom:none; }
+.stk .tkr{ cursor:default; }
+
 /* ---------------- Alerts / popover / toast as glass ----------------------- */
 [data-testid="stAlert"], [data-testid="stNotification"]{
   border-radius:14px; border:1px solid var(--hair); }
